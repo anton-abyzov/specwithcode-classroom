@@ -1,10 +1,12 @@
 # SpecWithCode Classroom
 
-**Free AI study help that never runs out.** A simplified, free-model edition of [SpecWithCode](https://specwithcode.com) for K-12 schools. It pools a school's donated, free and low-cost AI subscriptions and machines into one Key Ring, switches automatically when one runs out mid-class, and finishes real schoolwork: slide decks, math and physics solutions, and websites or mobile apps students build themselves.
+**Free AI study help that never runs out.** A simplified, free-model edition of [SpecWithCode](https://specwithcode.com) for K-12 schools. It pools a school's donated, free and low-cost AI subscriptions and machines into one Key Ring, switches automatically when one runs out mid-class, and helps students learn instead of doing the work for them: it coaches them through slide decks, math and physics problems, and websites or apps they build themselves. Teachers use it to make quizzes with answer keys and to check student answers.
 
 Built at the DevDay Exchange Community Hackathon: Miami (November 7 and 8, 2026), for South Florida K-12 schools and the nonprofits that support them.
 
 > **Built with OpenAI.** SpecWithCode Classroom runs on the **OpenAI Agents SDK** (agents, handoffs, tools, input guardrails, tracing), uses the **OpenAI API** (Responses API, `gpt-6-luna`) as the first providers on the Key Ring, one per OpenAI plan the school holds, and was built with **Codex** (the test suite in `tests/` was written by Codex). This covers the hackathon's three acceptance criteria. Other providers plug into the same Agents SDK model interface.
+
+**Live demo:** https://specwithcode-classroom.vercel.app · **Video:** https://www.youtube.com/watch?v=qdh9Curp-Gs · **Pitch deck:** [PDF](docs/pitch/SpecWithCode-Classroom-pitch.pdf), [PowerPoint](docs/pitch/SpecWithCode-Classroom-pitch.pptx)
 
 ![Failover in action](docs/02-failover-physics.png)
 
