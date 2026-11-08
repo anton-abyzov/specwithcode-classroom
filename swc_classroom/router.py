@@ -43,7 +43,8 @@ class Provider:
     @property
     def api_key(self) -> str | None:
         if self.key_env is None:
-            return "local"
+            # School machines share one key with their bridge; "local" suits an open Ollama.
+            return os.getenv("SWC_MACHINE_KEY") or "local"
         return os.getenv(self.key_env) or None
 
     @property
@@ -112,18 +113,18 @@ def machines() -> list[Provider]:
     """School computers running an OpenAI-compatible server (Ollama, LM Studio, vLLM).
     SWC_MACHINES="Library Mac=http://lib-mac.local:11434/v1;Room 204 PC=http://10.0.0.24:11434/v1"."""
     spec = os.getenv("SWC_MACHINES", "")
-    model = os.getenv("SWC_MACHINE_MODEL", "llama3.2")
+    model = os.getenv("SWC_MACHINE_MODEL", "gpt-6-luna")
     found = []
     for i, entry in enumerate(filter(None, (e.strip() for e in spec.split(";"))), start=1):
         name, _, url = entry.partition("=")
         found.append(
             Provider(f"machine-{i}", name.strip(), "machine", url.strip(), None, model, 10_000_000,
-                     "Open model on a school computer, no internet quota")
+                     os.getenv("SWC_MACHINE_NOTE", "A school computer signed in to Codex on a ChatGPT plan"))
         )
     if not found:
         found.append(
             Provider("machine-1", "Library lab Mac", "machine", None, None, model, 10_000_000,
-                     "Open model on a school computer, no internet quota")
+                     "A school computer signed in to Codex on a ChatGPT plan")
         )
     return found
 

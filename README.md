@@ -24,6 +24,18 @@ Students learn more from a plain answer when they decide what "done" means and c
 2. **Code.** Then the work: slides, a worked solution, or a real app, built against that checklist.
 3. **Check.** The student ticks off each item. In **Learn** mode (the default) the last step is theirs: the tutor stops before the final step, the app builder leaves one criterion as a `// YOUR TURN` with hints, and speaker notes become prompts instead of a script.
 
+## Machines: Codex on a ChatGPT plan
+
+Any computer signed in to Codex can join the ring. `machine/codex_bridge.py` serves the Chat Completions protocol and answers each call with `codex exec -m gpt-6-luna`, so the work is billed to that computer's ChatGPT plan rather than API credits. Tool calls come back as structured output, so handoffs and tools keep working.
+
+```bash
+SWC_MACHINE_KEY=<shared secret> .venv/bin/python machine/codex_bridge.py   # on the machine
+cloudflared tunnel --url http://127.0.0.1:8790                             # expose it
+SWC_MACHINES="Library Mac=https://<tunnel>/v1;Room 204=https://<tunnel2>/v1" # on the server, with the same SWC_MACHINE_KEY
+```
+
+Add as many machines as you like, separated by `;`. Each one appears as its own card on the ring.
+
 ## Proof it runs on real tokens
 
 The **Usage log** records every model call this browser made: time, request, provider, model, tokens in and out, time taken, and the provider's receipt (an OpenAI `resp_…` id). **Check with OpenAI** calls `GET /v1/responses/{id}` through `/api/verify/...` and shows the model and token counts as OpenAI reports them. **Trace** opens the Agents SDK trace for the run in the OpenAI dashboard. The log can be exported as CSV. **Refill all** only undoes simulated outages; it never erases usage.
@@ -85,7 +97,8 @@ Headless walkthrough that regenerates the screenshots in `docs/`: `.venv/bin/pyt
 | `OPENAI_LABEL_n` | Display name per plan, e.g. `PTA plan` |
 | `DEEPSEEK_API_KEY` | DeepSeek provider |
 | `GEMINI_API_KEY` | Gemini free-tier provider (OpenAI-compatible endpoint) |
-| `SWC_MACHINES` | School machines running Ollama or LM Studio: `Library Mac=http://lib-mac.local:11434/v1;Room 204=http://10.0.0.24:11434/v1` |
+| `SWC_MACHINE_KEY` | Shared secret between the server and machine bridges |
+| `SWC_MACHINES` | School machines (Codex bridge, Ollama or LM Studio): `Library Mac=http://lib-mac.local:11434/v1;Room 204=http://10.0.0.24:11434/v1` |
 | `SWC_*_MODEL` | Override the model per provider |
 | `SWC_*_BUDGET` | Daily token budget per provider |
 
