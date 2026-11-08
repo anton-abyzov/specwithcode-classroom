@@ -1,3 +1,9 @@
+import { animate, stagger } from "https://cdn.jsdelivr.net/npm/motion@12.43.0/+esm";
+
+const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const move = (el, kf, opts = {}) => animate(el, kf, calm ? { duration: 0 } : opts);
+const spring = { type: "spring", stiffness: 260, damping: 24 };
+
 const state = {
   mode: "finish",
   history: [],
@@ -15,6 +21,15 @@ function saveLocal() {
   localStorage.setItem("swc.switches", String(state.switches));
 }
 
+const meterWas = new Map();
+let shownTokens = 0;
+let batonAt = null;
+
+function countTo(el, from, to) {
+  if (calm || from === to) { el.textContent = to.toLocaleString(); return; }
+  animate(from, to, { duration: 0.8, ease: "easeOut", onUpdate: (v) => (el.textContent = Math.round(v).toLocaleString()) });
+}
+
 function renderRing(activeId) {
   const list = $("#providers");
   list.innerHTML = "";
@@ -22,28 +37,119 @@ function renderRing(activeId) {
   for (const p of state.providers) {
     total += p.used;
     const node = $("#tpl-provider").content.firstElementChild.cloneNode(true);
+    node.dataset.id = p.id;
     node.classList.add(p.status);
     if (p.id === activeId) node.classList.add("active");
-    node.querySelector(".p-label").textContent = p.label;
-    node.querySelector(".p-meta").textContent = `${KIND[p.kind]} · ${p.model}`;
-    const pct = p.status === "exhausted" ? 100 : Math.min(100, (p.used / p.budget) * 100);
-    node.querySelector(".bar i").style.width = `${Math.max(pct, 2)}%`;
-    const left = p.status === "offline" ? "not connected" : p.status === "exhausted" ? "out of tokens today" : `${(p.budget - p.used).toLocaleString()} tokens left`;
-    node.querySelector(".p-note").textContent = `${p.note} · ${left}`;
-    const t = node.querySelector(".toggle");
-    if (p.status === "offline") t.remove();
-    else {
-      t.textContent = state.exhausted.has(p.id) ? "Refill" : "Run out";
-      t.onclick = () => {
-        state.exhausted.has(p.id) ? state.exhausted.delete(p.id) : state.exhausted.add(p.id);
+    node.querySelector(".node-name").textContent = p.label;
+    node.querySelector(".node-model").textContent = `${KIND[p.kind]}, ${p.model}`;
+    const left = p.status === "offline" ? "Not connected yet" : p.status === "exhausted" ? "Out of tokens today" : `${(p.budget - p.used).toLocaleString()} tokens left`;
+    node.querySelector(".node-left").textContent = left;
+    const share = p.status === "exhausted" ? 1 : p.status === "offline" ? 0 : Math.max(0.02, 1 - p.used / p.budget);
+    const bar = node.querySelector(".meter i");
+    const before = meterWas.has(p.id) ? meterWas.get(p.id) : share;
+    bar.style.transform = `scaleX(${before})`;
+    move(bar, { transform: `scaleX(${share})` }, { duration: 0.7, ease: "easeOut" });
+    meterWas.set(p.id, share);
+    const btn = node.querySelector(".node-btn");
+    if (p.status === "offline") {
+      btn.disabled = true;
+      btn.title = "Add a school computer with SWC_MACHINES";
+    } else {
+      btn.title = state.exhausted.has(p.id) ? "Tap to refill" : "Tap to make it run out";
+      btn.setAttribute("aria-pressed", String(state.exhausted.has(p.id)));
+      btn.onclick = async () => {
+        const out = !state.exhausted.has(p.id);
+        out ? state.exhausted.add(p.id) : state.exhausted.delete(p.id);
         saveLocal();
-        loadRing();
+        if (out) await move(btn, { x: [0, -7, 7, -4, 4, 0] }, { duration: 0.4 });
+        loadRing(activeId);
       };
     }
     list.appendChild(node);
   }
-  $("#totalTokens").textContent = total.toLocaleString();
+  countTo($("#totalTokens"), shownTokens, total);
+  shownTokens = total;
   $("#totalSwitches").textContent = state.switches;
+  requestAnimationFrame(layoutWire);
+}
+
+function nodeEl(id) {
+  return document.querySelector(`.node[data-id="${id}"]`);
+}
+
+function anchor(id) {
+  const n = nodeEl(id);
+  if (!n) return null;
+  const t = $("#track").getBoundingClientRect();
+  const r = n.getBoundingClientRect();
+  return { x: r.left - t.left + r.width / 2 - 9, y: r.top - t.top - 9 };
+}
+
+function layoutWire() {
+  const nodes = document.querySelectorAll(".node");
+  if (!nodes.length) return;
+  const a = anchor(nodes[0].dataset.id), b = anchor(nodes[nodes.length - 1].dataset.id);
+  const line = $("#wireLine");
+  line.setAttribute("x1", a.x + 9); line.setAttribute("x2", b.x + 9);
+  line.setAttribute("y1", a.y + 9); line.setAttribute("y2", a.y + 9);
+  if (batonAt) {
+    const p = anchor(batonAt);
+    if (p) Object.assign($("#baton").style, { transform: `translate(${p.x}px, ${p.y - 3}px)` });
+  }
+}
+
+async function batonTo(id, opts = {}) {
+  const p = anchor(id);
+  if (!p) return;
+  const baton = $("#baton");
+  if (batonAt === null) {
+    baton.style.transform = `translate(${p.x}px, ${p.y - 3}px)`;
+    await move(baton, { opacity: [0, 1], scale: [0.2, 1] }, { duration: 0.3 });
+  } else {
+    await move(baton, { transform: `translate(${p.x}px, ${p.y - 3}px)`, opacity: 1 }, { ...spring, ...opts });
+  }
+  batonAt = id;
+}
+
+async function bounceOff(id) {
+  await batonTo(id, { stiffness: 380 });
+  const btn = nodeEl(id)?.querySelector(".node-btn");
+  if (btn) move(btn, { x: [0, -6, 6, -3, 0] }, { duration: 0.35 });
+  await move($("#baton"), { scale: [1, 0.6, 1] }, { duration: 0.25 });
+}
+
+let pulse = null;
+function startPulse() {
+  if (calm) return;
+  pulse = animate($("#baton"), { scale: [1, 1.45, 1] }, { duration: 1.1, repeat: Infinity, ease: "easeInOut" });
+}
+function stopPulse() {
+  pulse?.stop();
+  pulse = null;
+}
+
+async function relayWhileWaiting() {
+  for (const p of state.providers) {
+    if (p.status === "offline") continue;
+    if (state.exhausted.has(p.id) || p.status === "exhausted") { await bounceOff(p.id); continue; }
+    await batonTo(p.id);
+    nodeEl(p.id)?.classList.add("active");
+    startPulse();
+    return;
+  }
+}
+
+async function landOn(route) {
+  stopPulse();
+  for (const e of route) {
+    if (e.outcome === "switched" && !state.exhausted.has(e.provider)) await bounceOff(e.provider);
+  }
+  const served = [...route].reverse().find((e) => e.outcome === "served");
+  if (served) {
+    await batonTo(served.provider);
+    move($("#baton"), { scale: [1, 1.8, 1] }, { duration: 0.45 });
+  }
+  return served?.provider;
 }
 
 async function loadRing(activeId) {
@@ -53,7 +159,14 @@ async function loadRing(activeId) {
 }
 
 function renderMarkdown(el, text) {
-  el.innerHTML = marked.parse(text);
+  // Shield LaTeX from the markdown parser, which would eat its backslashes and underscores.
+  const math = [];
+  const shielded = text.replace(/\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]+?\$/g, (m) => {
+    math.push(m);
+    return `@@MATH${math.length - 1}@@`;
+  });
+  const esc = (m) => m.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  el.innerHTML = marked.parse(shielded).replace(/@@MATH(\d+)@@/g, (_, i) => esc(math[Number(i)]));
   renderMathInElement(el, {
     delimiters: [
       { left: "$$", right: "$$", display: true },
@@ -127,6 +240,7 @@ function slidesArtifact(deck) {
   let at = 0;
   const show = () => {
     stage.querySelectorAll(".slide").forEach((el, i) => el.classList.toggle("on", i === at));
+    move(stage.querySelector(".slide.on"), { opacity: [0, 1], x: [18, 0] }, { duration: 0.3, ease: "easeOut" });
     box.querySelector(".pos").textContent = `${at + 1}/${pages.length}`;
     box.querySelector(".notes").textContent = pages[at].cover ? "Speaker notes appear here." : `🎤 ${pages[at].speaker_notes}`;
   };
@@ -149,7 +263,8 @@ function specArtifact(a) {
   box.querySelector(".goal").textContent = a.goal;
   a.acceptance_criteria.forEach((t, i) => {
     const li = document.createElement("li");
-    li.textContent = `AC-${String(i + 1).padStart(2, "0")}  ${t}`;
+    li.innerHTML = `<span>AC-${String(i + 1).padStart(2, "0")}</span>`;
+    li.append(t);
     box.querySelector(".ac").appendChild(li);
   });
   a.tasks.forEach((t) => {
@@ -176,14 +291,20 @@ function appArtifact(a) {
 }
 
 async function send(text) {
+  const welcome = $(".welcome");
+  if (welcome) {
+    await move(welcome, { opacity: 0, y: -10 }, { duration: 0.2 });
+    welcome.remove();
+  }
   addUser(text);
-  $(".welcome")?.remove();
   const bot = document.createElement("div");
   bot.className = "msg bot";
-  bot.innerHTML = '<div class="thinking">Coach is picking a subscription with tokens left</div>';
+  bot.innerHTML = '<p class="thinking"><b>Coach</b> is finding a subscription with tokens left…</p>';
   feed.appendChild(bot);
-  feed.scrollTop = feed.scrollHeight;
+  move(bot, { opacity: [0, 1], y: [12, 0] }, { duration: 0.3 });
+  bot.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "end" });
   $("#send").disabled = true;
+  relayWhileWaiting();
   try {
     const r = await fetch("/api/chat", {
       method: "POST",
@@ -201,20 +322,22 @@ async function send(text) {
     head.querySelector(".agent-tag").textContent = data.agent;
     head.appendChild(routeChips(data.route));
     bot.appendChild(head);
+    for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : a.type === "spec" ? specArtifact(a) : appArtifact(a));
     const body = document.createElement("div");
+    body.className = "reply";
     renderMarkdown(body, data.reply);
     bot.appendChild(body);
-    for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : a.type === "spec" ? specArtifact(a) : appArtifact(a));
     state.history.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
+    move(bot.children, { opacity: [0, 1], y: [10, 0] }, { delay: stagger(0.08), duration: 0.35 });
+    const servedBy = await landOn(data.route);
     state.providers = data.providers;
-    const served = [...data.route].reverse().find((e) => e.outcome === "served");
-    renderRing(served?.provider);
+    renderRing(servedBy);
   } catch (err) {
+    stopPulse();
     bot.innerHTML = `<p class="error"></p>`;
-    bot.querySelector(".error").textContent = `Couldn't finish: ${err.message}`;
+    bot.querySelector(".error").textContent = `This request didn't finish: ${err.message}. Try again, or refill a subscription above.`;
   } finally {
     $("#send").disabled = false;
-    feed.scrollTop = feed.scrollHeight;
   }
 }
 
@@ -228,18 +351,34 @@ $("#composer").onsubmit = (e) => {
 $("#input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#composer").requestSubmit(); }
 });
-document.querySelectorAll(".chips button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
+document.querySelectorAll(".starters button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
 document.querySelectorAll(".mode button").forEach((b) => (b.onclick = () => {
   state.mode = b.dataset.mode;
-  document.querySelectorAll(".mode button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".mode button").forEach((x) => {
+    x.classList.toggle("on", x === b);
+    x.setAttribute("aria-checked", String(x === b));
+  });
 }));
+$("#openHow").onclick = () => {
+  const d = $("#how");
+  d.showModal();
+  move(d, { opacity: [0, 1], scale: [0.96, 1] }, { duration: 0.25 });
+};
+addEventListener("resize", layoutWire);
 $("#resetRing").onclick = async () => {
   state.exhausted.clear();
   state.switches = 0;
   saveLocal();
   const r = await fetch("/api/ring/reset", { method: "POST" });
   state.providers = (await r.json()).providers;
+  meterWas.clear();
   renderRing();
+  await move($("#baton"), { opacity: 0 }, { duration: 0.2 });
+  batonAt = null;
 };
 
-loadRing();
+// One orchestrated entrance: the relay lights up left to right, then the desk arrives.
+await loadRing();
+move(".node", { opacity: [0, 1], y: [14, 0] }, { delay: stagger(0.08), duration: 0.45, ease: "easeOut" });
+move("#wireLine", { strokeDashoffset: [120, 0] }, { duration: 1.2, ease: "easeOut" });
+move(".welcome > *", { opacity: [0, 1], y: [16, 0] }, { delay: stagger(0.08, { startDelay: 0.3 }), duration: 0.5, ease: "easeOut" });
