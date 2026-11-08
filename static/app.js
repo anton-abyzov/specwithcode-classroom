@@ -199,6 +199,39 @@ function addUser(text) {
   feed.appendChild(el);
 }
 
+function usageDetails(route, providers) {
+  const label = (id) => providers.find((p) => p.id === id)?.label || id;
+  const rows = [];
+  for (const e of route) {
+    const last = rows.at(-1);
+    if (last && last.outcome === "served" && e.outcome === "served" && last.provider === e.provider) {
+      last.calls += 1; last.in += e.input_tokens || 0; last.out += e.output_tokens || 0; last.ms += e.ms;
+    } else rows.push({ ...e, calls: 1, in: e.input_tokens || 0, out: e.output_tokens || 0 });
+  }
+  const served = rows.filter((r) => r.outcome === "served");
+  const tin = served.reduce((n, r) => n + r.in, 0), tout = served.reduce((n, r) => n + r.out, 0);
+  const box = document.createElement("details");
+  box.className = "usage";
+  box.open = true;
+  box.innerHTML = `<summary></summary><table><thead><tr><th>Subscription</th><th>Model</th><th>Result</th><th>Calls</th><th>Tokens in</th><th>Tokens out</th><th>Left today</th></tr></thead><tbody></tbody></table>`;
+  box.querySelector("summary").textContent = `Usage for this answer: ${(tin + tout).toLocaleString()} tokens (${tin.toLocaleString()} in, ${tout.toLocaleString()} out) from ${[...new Set(served.map((r) => label(r.provider)))].join(" + ")}`;
+  const tbody = box.querySelector("tbody");
+  const ledgerUsed = (id) => todaysLedger().filter((e) => e.provider === id).reduce((n, e) => n + e.tokens, 0);
+  for (const r of rows) {
+    const p = providers.find((x) => x.id === r.provider);
+    const left = p ? Math.max(p.budget - ledgerUsed(p.id), 0) : 0;
+    const exhausted = state.exhausted.has(r.provider) || p?.status === "exhausted";
+    const cells = r.outcome === "served"
+      ? [label(r.provider), p?.model || r.detail, "Answered", r.calls, r.in.toLocaleString(), r.out.toLocaleString(), exhausted ? "0" : left.toLocaleString()]
+      : [label(r.provider), p?.model || "", `Skipped: ${r.detail}`, "", "", "", "0"];
+    const tr = document.createElement("tr");
+    tr.className = r.outcome;
+    for (const c of cells) tr.appendChild(Object.assign(document.createElement("td"), { textContent: String(c) }));
+    tbody.appendChild(tr);
+  }
+  return box;
+}
+
 function routeStory(route) {
   const name = (id) => state.providers.find((p) => p.id === id)?.label || id;
   const model = (id) => state.providers.find((p) => p.id === id)?.model || "";
@@ -338,6 +371,7 @@ async function send(text) {
   relayWhileWaiting(say);
   try {
     const r = await fetch("/api/chat", {
+      signal: AbortSignal.timeout(170_000),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: text, history: state.history, mode: state.mode, exhausted: [...state.exhausted] }),
@@ -360,6 +394,7 @@ async function send(text) {
     receipts.onclick = () => $("#openLog").click();
     head.querySelector(".story").append(" ", receipts);
     bot.appendChild(head);
+    bot.appendChild(usageDetails(data.route, data.providers));
     for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : a.type === "spec" ? specArtifact(a) : appArtifact(a));
     const body = document.createElement("div");
     body.className = "reply";
@@ -375,7 +410,8 @@ async function send(text) {
     clearInterval(tick);
     stopPulse();
     bot.innerHTML = `<p class="error"></p>`;
-    bot.querySelector(".error").textContent = `This request didn't finish: ${err.message}. Try again, or refill a subscription above.`;
+    const why = err.name === "TimeoutError" ? "no answer after 170 seconds" : err.message;
+    bot.querySelector(".error").textContent = `This request didn't finish (${why}). Send it again; the next subscription on the list will pick it up.`;
   } finally {
     $("#send").disabled = false;
   }

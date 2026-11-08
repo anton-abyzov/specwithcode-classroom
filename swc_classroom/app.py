@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 from pathlib import Path
@@ -7,7 +8,8 @@ from typing import Any, Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import Request
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -136,14 +138,24 @@ def pptx(deck: Deck) -> StreamingResponse:
 STATIC = ROOT / "static"
 
 
+def _version(name: str) -> str:
+    return hashlib.sha256((STATIC / name).read_bytes()).hexdigest()[:10]
+
+
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(STATIC / "index.html")
+def index() -> HTMLResponse:
+    # Assets carry a content hash so a browser never pairs a new page with an old script.
+    html = (STATIC / "index.html").read_text()
+    for name in ("app.js", "style.css"):
+        html = html.replace(f"/static/{name}", f"/static/{name}?v={_version(name)}")
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/static/{name}")
-def static(name: str) -> FileResponse:
+def static(name: str, request: Request) -> FileResponse:
     path = (STATIC / name).resolve()
     if path.parent != STATIC or not path.is_file():
         raise HTTPException(status_code=404)
-    return FileResponse(path)
+    versioned = "v" in request.query_params
+    cache = "public, max-age=31536000, immutable" if versioned else "no-cache"
+    return FileResponse(path, headers={"Cache-Control": cache})

@@ -237,3 +237,11 @@ a { color: inherit; }
 .linkish { border: 0; background: none; padding: 0; font-weight: 700; color: var(--ink); text-decoration: underline; text-decoration-color: var(--bus); text-decoration-thickness: 3px; text-underline-offset: 3px; }
 .agent-tag { flex: none; }
 @media (prefers-reduced-motion: reduce) { .progress li.live::before { animation: none; } }
+
+.usage { margin: 0 0 14px; border: 2px solid var(--ink); border-radius: 12px; background: #f6f8fc; font-size: 14px; }
+.usage summary { cursor: pointer; padding: 8px 12px; font-weight: 700; }
+.usage table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; background: white; border-top: 2px solid var(--ink); border-radius: 0 0 10px 10px; overflow: hidden; }
+.usage th { text-align: left; font-weight: 700; padding: 6px 10px; color: var(--ink-soft); font-size: 13px; }
+.usage td { padding: 6px 10px; border-top: 1px solid var(--line); }
+.usage tr.served td:nth-child(3) { color: #0f7a52; font-weight: 700; }
+.usage tr.switched td { color: #c2185b; }
