@@ -190,3 +190,12 @@ def test_charge_updates_used_tokens(ring):
     assert provider.last_error is None
     assert ring.get("second").used_tokens == 0
     assert ring.get("second").requests == 0
+
+
+def test_tunnel_error_from_sleeping_machine_fails_over(ring, models):
+    response = httpx.Response(530, request=httpx.Request("POST", "https://machine.invalid/v1/chat/completions"))
+    models["first"].result = openai.APIStatusError("Tunnel down", response=response, body=None)
+    model = FailoverModel(ring)
+
+    assert asyncio.run(model.get_response()) is models["second"].result
+    assert model.events[0].detail == "HTTP 530: APIStatusError"

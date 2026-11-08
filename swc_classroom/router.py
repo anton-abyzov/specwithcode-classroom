@@ -172,7 +172,8 @@ def should_fail_over(exc: BaseException) -> bool:
     if isinstance(exc, (BudgetExhausted, openai.APIConnectionError, openai.APITimeoutError)):
         return True
     if isinstance(exc, openai.APIStatusError):
-        return exc.status_code in FAILOVER_STATUS
+        # Any 5xx counts, including tunnel errors (Cloudflare 52x/530) from a sleeping school machine.
+        return exc.status_code in FAILOVER_STATUS or exc.status_code >= 500
     return False
 
 
