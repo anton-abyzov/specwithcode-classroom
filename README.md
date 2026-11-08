@@ -6,7 +6,7 @@ Built at the DevDay Exchange Community Hackathon: Miami (November 7 and 8, 2026)
 
 > **Built with OpenAI.** SpecWithCode Classroom runs on the **OpenAI Agents SDK** (agents, handoffs, tools, input guardrails, tracing), uses the **OpenAI API** (Responses API, `gpt-6-luna`) as the first providers on the Key Ring, one per OpenAI plan the school holds, and was built with **Codex** (the test suite in `tests/` was written by Codex). This covers the hackathon's three acceptance criteria. Other providers plug into the same Agents SDK model interface.
 
-**Live demo:** https://specwithcode-classroom.vercel.app · **Video:** https://www.youtube.com/watch?v=qdh9Curp-Gs · **Pitch deck:** [PDF](docs/pitch/SpecWithCode-Classroom-pitch.pdf), [PowerPoint](docs/pitch/SpecWithCode-Classroom-pitch.pptx)
+**Live demo:** https://specwithcode-classroom.vercel.app · **Video (narrated):** https://www.youtube.com/watch?v=tudzrDLYe78 · **Pitch deck:** [PDF](docs/pitch/SpecWithCode-Classroom-pitch.pdf), [PowerPoint](docs/pitch/SpecWithCode-Classroom-pitch.pptx)
 
 ![Failover in action](docs/02-failover-physics.png)
 

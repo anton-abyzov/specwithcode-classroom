@@ -1,5 +1,7 @@
 # SpecWithCode Classroom: free AI study help that never runs out
 
+**Live demo:** https://specwithcode-classroom.vercel.app · **Video:** https://www.youtube.com/watch?v=tudzrDLYe78 · **Pitch deck:** [PDF](docs/pitch/SpecWithCode-Classroom-pitch.pdf)
+
 A simplified, free-model edition of SpecWithCode for K-12 schools.
 
 **Event:** DevDay Exchange Community Hackathon: Miami, November 7 and 8, 2026
