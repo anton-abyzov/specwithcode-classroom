@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BotStack · free AI study help that never runs out</title>
+<meta name="description" content="BotStack pools a school's donated and free AI subscriptions and machines, switches automatically when one runs out, and finishes real schoolwork: slides, math, physics, websites and apps.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div>
+      <h1>BotStack</h1>
+      <p>Free AI study help that never runs out</p>
+    </div>
+  </div>
+  <div class="who">
+    <div class="avatar">M</div>
+    <div>
+      <strong id="studentName">Maya</strong>
+      <span>Grade <b id="studentGrade">7</b> · Bayside K-8 Academy</span>
+    </div>
+    <div class="mode" role="group" aria-label="Teacher mode">
+      <button data-mode="learn">Learn</button>
+      <button data-mode="finish" class="on">Finish</button>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="ring">
+    <div class="ring-head">
+      <h2>Key Ring</h2>
+      <button id="resetRing" class="ghost" title="Reset today's usage">Reset day</button>
+    </div>
+    <p class="hint">The school's subscriptions and machines, in policy order. Tap <em>Run out</em> to simulate a quota hitting zero mid-class.</p>
+    <div class="totals">
+      <div><span id="totalTokens">0</span><small>tokens today</small></div>
+      <div><span id="totalSwitches">0</span><small>auto-switches</small></div>
+      <div><span>$0</span><small>billed to families</small></div>
+    </div>
+    <ol id="providers"></ol>
+  </aside>
+
+  <section class="desk">
+    <div id="feed" class="feed">
+      <div class="welcome">
+        <h2>Hi Maya, what are we working on?</h2>
+        <p>BotStack finishes real schoolwork. It picks whichever of your school's AI subscriptions still has free tokens, and moves to the next one if it runs out.</p>
+        <div class="chips">
+          <button data-prompt="Make a 6-slide presentation for science class on how volcanoes form, with speaker notes.">🌋 Slides on volcanoes</button>
+          <button data-prompt="A skateboarder rolls off a 1.2 m ledge at 3 m/s. How far from the ledge does she land? Use g = 9.8 m/s².">🛹 Physics: projectile</button>
+          <button data-prompt="Solve 2x² + 3x − 5 = 0 and explain each step.">➗ Quadratic equation</button>
+          <button data-prompt="Build a mobile app for our class book club: list of books, a reading-minutes tracker per day saved on the phone, and a progress ring.">📱 Build a book club app</button>
+        </div>
+      </div>
+    </div>
+    <form id="composer" class="composer">
+      <textarea id="input" rows="2" placeholder="Ask for slides, a math or physics solution, or a website or app…" required></textarea>
+      <button type="submit" id="send">Send</button>
+    </form>
+  </section>
+</main>
+
+<template id="tpl-provider">
+  <li class="provider">
+    <div class="p-row">
+      <span class="dot"></span>
+      <div class="p-main">
+        <strong class="p-label"></strong>
+        <span class="p-meta"></span>
+      </div>
+      <button class="toggle ghost"></button>
+    </div>
+    <div class="bar"><i></i></div>
+    <span class="p-note"></span>
+  </li>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

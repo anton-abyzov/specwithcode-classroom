@@ -1,0 +1,5 @@
+openai-agents==0.24.0
+fastapi>=0.115
+python-pptx>=1.0
+sympy>=1.13
+python-dotenv>=1.0
