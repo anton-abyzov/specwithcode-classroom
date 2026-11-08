@@ -1,0 +1,6 @@
+.venv
+.env
+.git
+tests
+scripts
+docs

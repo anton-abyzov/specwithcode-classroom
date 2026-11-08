@@ -77,7 +77,7 @@ Headless walkthrough that regenerates the screenshots in `docs/`: `.venv/bin/pyt
 
 ### Deploy
 
-`vercel.json` deploys the FastAPI app as one Python function. Set the keys above as Vercel environment variables and run `vercel deploy --prod`.
+Any container host works with the included `Dockerfile` (for example `gcloud run deploy botstack --source .` with the keys as environment variables). `vercel.json` also deploys the app as one Python function on Vercel.
 
 ## Layout
 

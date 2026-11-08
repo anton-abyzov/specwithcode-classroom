@@ -6,7 +6,7 @@
 
 **Repo:** https://github.com/anton-abyzov/botstack
 
-**Live demo:** DEMO_URL
+**Live demo:** https://baseball-checks-due-biology.trycloudflare.com
 
 ## One line
 
