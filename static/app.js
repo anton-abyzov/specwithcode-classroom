@@ -1,18 +1,18 @@
 const state = {
   mode: "finish",
   history: [],
-  exhausted: new Set(JSON.parse(localStorage.getItem("botstack.exhausted") || "[]")),
-  switches: Number(localStorage.getItem("botstack.switches") || 0),
+  exhausted: new Set(JSON.parse(localStorage.getItem("swc.exhausted") || "[]")),
+  switches: Number(localStorage.getItem("swc.switches") || 0),
   providers: [],
 };
 
 const $ = (s) => document.querySelector(s);
 const feed = $("#feed");
-const KIND = { grant: "Grant", "free-tier": "Free tier", subscription: "Subscription", machine: "Machine" };
+const KIND = { grant: "Credits", "free-tier": "Free tier", subscription: "Subscription", machine: "Machine" };
 
 function saveLocal() {
-  localStorage.setItem("botstack.exhausted", JSON.stringify([...state.exhausted]));
-  localStorage.setItem("botstack.switches", String(state.switches));
+  localStorage.setItem("swc.exhausted", JSON.stringify([...state.exhausted]));
+  localStorage.setItem("swc.switches", String(state.switches));
 }
 
 function renderRing(activeId) {
@@ -75,7 +75,7 @@ function addUser(text) {
 function routeChips(route) {
   const wrap = document.createElement("div");
   wrap.className = "route";
-  const label = { openai: "OpenAI", deepseek: "DeepSeek", gemini: "Gemini", "lab-machine": "Lab Mac" };
+  const label = Object.fromEntries(state.providers.map((p) => [p.id, p.label.replace(" free tier", "")]));
   const hops = [];
   for (const e of route) {
     const last = hops[hops.length - 1];
@@ -140,6 +140,26 @@ function slidesArtifact(deck) {
   return box;
 }
 
+function specArtifact(a) {
+  const box = document.createElement("div");
+  box.className = "artifact spec";
+  box.innerHTML = `<div class="artifact-bar"><strong></strong><span class="agent-tag">spec.md</span></div>
+    <div class="spec-body"><p class="goal"></p><h5>Acceptance criteria</h5><ul class="ac"></ul><h5>Tasks</h5><ol class="tasks"></ol></div>`;
+  box.querySelector("strong").textContent = a.title;
+  box.querySelector(".goal").textContent = a.goal;
+  a.acceptance_criteria.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.textContent = `AC-${String(i + 1).padStart(2, "0")}  ${t}`;
+    box.querySelector(".ac").appendChild(li);
+  });
+  a.tasks.forEach((t) => {
+    const li = document.createElement("li");
+    li.textContent = t;
+    box.querySelector(".tasks").appendChild(li);
+  });
+  return box;
+}
+
 function appArtifact(a) {
   const box = document.createElement("div");
   box.className = "artifact";
@@ -184,7 +204,7 @@ async function send(text) {
     const body = document.createElement("div");
     renderMarkdown(body, data.reply);
     bot.appendChild(body);
-    for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : appArtifact(a));
+    for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : a.type === "spec" ? specArtifact(a) : appArtifact(a));
     state.history.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
     state.providers = data.providers;
     const served = [...data.route].reverse().find((e) => e.outcome === "served");

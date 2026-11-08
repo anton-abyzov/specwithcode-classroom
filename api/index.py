@@ -1,1 +1,1 @@
-from botstack.app import app  # noqa: F401
+from swc_classroom.app import app  # noqa: F401

@@ -1,4 +1,4 @@
-"""The BotStack agent team, built on the OpenAI Agents SDK.
+"""The SpecWithCode Classroom agent team, built on the OpenAI Agents SDK.
 
 Coach triages each request and hands off to a specialist. Every agent runs on the
 same FailoverModel, so a handoff can land on a different provider than the turn
@@ -94,6 +94,24 @@ def evaluate(expression: str) -> str:
 
 
 @function_tool
+def write_spec(
+    ctx: RunContextWrapper[Session], title: str, goal: str, acceptance_criteria: list[str], tasks: list[str]
+) -> str:
+    """Write the one-page spec for a student project before building it (spec first, then code).
+
+    Args:
+        title: Project name.
+        goal: One or two sentences: who it is for and what problem it solves.
+        acceptance_criteria: 3 to 5 checkable statements, each starting with "The user can" or "The app".
+        tasks: 3 to 6 build steps in order.
+    """
+    ctx.context.artifacts.append(
+        {"type": "spec", "title": title, "goal": goal, "acceptance_criteria": acceptance_criteria, "tasks": tasks}
+    )
+    return "Spec saved. Now build exactly what it says and call publish_app."
+
+
+@function_tool
 def publish_app(ctx: RunContextWrapper[Session], name: str, description: str, html: str) -> str:
     """Publish a student-built website or mobile web app. The app previews it on a phone frame.
 
@@ -183,12 +201,14 @@ def build_team(model: Model) -> Agent[Session]:
         name="App Builder",
         handoff_description="Builds websites and mobile web apps the student can publish and edit.",
         instructions=_instructions(
-            "You help students build real websites and mobile apps as single-file HTML (installable "
-            "on a phone from the browser). Design it well: a clear layout, good typography, working "
+            "You help students build real websites and mobile apps the SpecWithCode way: spec first, "
+            "then code. First call write_spec with the goal, acceptance criteria and tasks. Then build "
+            "it as single-file HTML (installable on a phone from the browser). Design it well: a clear layout, good typography, working "
             "JavaScript, no placeholder text. Call publish_app exactly once with the full document. "
-            "Then explain in 3 bullets how it works and suggest one feature the student could add."
+            "Then say which acceptance criteria are met, explain in 3 bullets how it works, and suggest "
+            "one feature the student could add to the spec next."
         ),
-        tools=[publish_app],
+        tools=[write_spec, publish_app],
         model=model,
         model_settings=settings,
     )
@@ -196,7 +216,7 @@ def build_team(model: Model) -> Agent[Session]:
     coach = Agent[Session](
         name="Coach",
         instructions=_instructions(
-            "You are BotStack Coach, the front desk of a free AI study helper for a K-12 school. "
+            "You are the SpecWithCode Classroom Coach, the front desk of a free AI study helper for a K-12 school. "
             "Hand off to Slides Studio for presentations, Math & Physics Tutor for math or science "
             "problems, and App Builder for websites or apps. Answer other study questions yourself, "
             "briefly."

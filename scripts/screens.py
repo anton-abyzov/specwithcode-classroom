@@ -20,7 +20,9 @@ with sync_playwright() as pw:
     page.wait_for_selector(".provider")
     page.screenshot(path="docs/01-home.png")
 
-    page.locator(".provider", has_text="OpenAI").locator(".toggle").click()
+    for plan in ("OpenAI plan A", "OpenAI plan B"):
+        page.locator(".provider", has_text=plan).locator(".toggle").click()
+        page.wait_for_timeout(400)
     page.click("text=Physics: projectile")
     wait_reply(page, 1)
     page.locator(".msg.bot .who-said").last.scroll_into_view_if_needed()
@@ -28,7 +30,9 @@ with sync_playwright() as pw:
     page.wait_for_timeout(800)
     page.screenshot(path="docs/02-failover-physics.png")
 
-    page.locator(".provider", has_text="OpenAI").locator(".toggle").click()
+    for plan in ("OpenAI plan A", "OpenAI plan B"):
+        page.locator(".provider", has_text=plan).locator(".toggle").click()
+        page.wait_for_timeout(400)
     page.fill("#input", "Make a 6-slide presentation for science class on how volcanoes form, with speaker notes.")
     page.click("#send")
     wait_reply(page, 2)

@@ -2,7 +2,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt uvicorn
-COPY botstack botstack
+COPY swc_classroom swc_classroom
 COPY static static
 ENV PORT=8080
-CMD exec uvicorn botstack.app:app --host 0.0.0.0 --port $PORT
+CMD exec uvicorn swc_classroom.app:app --host 0.0.0.0 --port $PORT

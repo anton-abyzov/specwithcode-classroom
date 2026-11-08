@@ -3,7 +3,7 @@ import io
 import pytest
 from pptx import Presentation
 
-from botstack.slides import deck_to_pptx
+from swc_classroom.slides import deck_to_pptx
 
 
 @pytest.mark.parametrize(

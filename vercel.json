@@ -1,6 +1,5 @@
 {
   "functions": {
-    "api/index.py": { "maxDuration": 300, "includeFiles": "{static,botstack}/**" }
-  },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+    "api/index.py": { "maxDuration": 300, "includeFiles": "{static,swc_classroom}/**" }
+  }
 }

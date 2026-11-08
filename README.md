@@ -1,10 +1,10 @@
-# BotStack
+# SpecWithCode Classroom
 
-**Free AI study help that never runs out.** BotStack pools a school's donated, free and low-cost AI subscriptions and machines into one Key Ring, switches automatically when one runs out mid-class, and finishes real schoolwork: slide decks, math and physics solutions, and websites or mobile apps students build themselves.
+**Free AI study help that never runs out.** A simplified, free-model edition of [SpecWithCode](https://specwithcode.com) for K-12 schools. It pools a school's donated, free and low-cost AI subscriptions and machines into one Key Ring, switches automatically when one runs out mid-class, and finishes real schoolwork: slide decks, math and physics solutions, and websites or mobile apps students build themselves.
 
 Built at the DevDay Exchange Community Hackathon: Miami (November 7 and 8, 2026), for South Florida K-12 schools and the nonprofits that support them.
 
-> **Built with OpenAI.** BotStack runs on the **OpenAI Agents SDK** (agents, handoffs, tools, input guardrails, tracing), uses the **OpenAI API** as the first provider on the Key Ring (`gpt-5.4-mini` on donated nonprofit credits), and was built with **Codex** (the test suite in `tests/` was written by Codex). This covers the hackathon's three acceptance criteria. Other providers plug into the same Agents SDK model interface.
+> **Built with OpenAI.** SpecWithCode Classroom runs on the **OpenAI Agents SDK** (agents, handoffs, tools, input guardrails, tracing), uses the **OpenAI API** (Responses API, `gpt-6-luna`) as the first providers on the Key Ring, one per OpenAI plan the school holds, and was built with **Codex** (the test suite in `tests/` was written by Codex). This covers the hackathon's three acceptance criteria. Other providers plug into the same Agents SDK model interface.
 
 ![Failover in action](docs/02-failover-physics.png)
 
@@ -12,9 +12,9 @@ Built at the DevDay Exchange Community Hackathon: Miami (November 7 and 8, 2026)
 
 Maya is in 7th grade at a Miami K-8 school. Her class uses free AI tools every day, and every day the free tier runs out around third period. Families who can pay keep going; Maya's class stops.
 
-Her school already has more AI capacity than it uses: a nonprofit OpenAI credit grant, a cheap DeepSeek subscription, a Gemini free tier on the district account, and a Mac in the library that can run an open model. They just live in four places, with four logins, and nobody switches between them in the middle of a lesson.
+Her school already has more AI capacity than it uses: several OpenAI plans with GPT-6 Luna credits (a nonprofit grant, a PTA plan, a teacher's donated plan), a cheap DeepSeek subscription, a Gemini free tier on the district account, and a Mac in the library that can run an open model. They just live in four places, with four logins, and nobody switches between them in the middle of a lesson.
 
-BotStack is the one door in front of all of them. Maya asks for a presentation on volcanoes, a projectile problem, or an app for her book club. Coach routes the job to the right specialist agent, and the Key Ring routes every model call to whichever subscription still has tokens. When the OpenAI grant hits its daily cap at 10:40, the next call goes to DeepSeek and Maya never sees an error. Families are billed $0.
+SpecWithCode Classroom is the one door in front of all of them. Maya asks for a presentation on volcanoes, a projectile problem, or an app for her book club. Coach routes the job to the right specialist agent, and the Key Ring routes every model call to whichever subscription still has tokens. When OpenAI plan A hits its daily cap at 10:40, the next call goes to plan B, then DeepSeek, then the library Mac, and Maya never sees an error. Families are billed $0.
 
 ## What it does
 
@@ -22,7 +22,7 @@ BotStack is the one door in front of all of them. Maya asks for a presentation o
 | --- | --- |
 | Slides Studio | A 5 to 7 slide deck with speaker notes, shown in the browser and downloadable as `.pptx` |
 | Math & Physics Tutor | Step-by-step solutions in LaTeX, every result checked with SymPy before it is stated, plus a "check yourself" question |
-| App Builder | A complete single-file website or mobile web app, previewed in a phone frame and downloadable |
+| App Builder | Spec first, then code, the SpecWithCode way: a one-page spec (goal, acceptance criteria, tasks), then a complete single-file website or mobile web app, previewed in a phone frame and downloadable |
 | Coach | Triage and short study answers; hands off to the specialists |
 
 Teachers pick **Learn** (hints and steps, the student does the last step) or **Finish** (complete work, explained so the student can defend it). A K-12 safety guardrail screens every request.
@@ -36,13 +36,14 @@ flowchart LR
   C -->|handoff| T[Math & Physics Tutor]
   C -->|handoff| B[App Builder]
   C & SL & T & B --> F[FailoverModel]
-  F --> O[OpenAI grant]
-  F -. 429 / quota / budget .-> D[DeepSeek]
+  F --> O1[OpenAI plan A · gpt-6-luna]
+  O1 -. 429 / quota / budget .-> O2[OpenAI plan B · gpt-6-luna]
+  O2 -.-> D[DeepSeek]
   D -. down .-> G[Gemini free tier]
-  G -. offline .-> L[Library lab Mac]
+  G -. offline .-> L[School machines · Ollama]
 ```
 
-`FailoverModel` (`botstack/router.py`) implements the Agents SDK `Model` interface. Every provider speaks the Chat Completions protocol and is wrapped in `OpenAIChatCompletionsModel`. On each model call the ring tries providers in the school's policy order and moves on when one returns 429, 402, 401/403, 5xx, a connection error, or has used its school-set daily token budget. A provider that fails stays skipped for the rest of that run. Every hop is returned to the UI, which shows it as a route trail on each answer and updates the budget bars.
+`FailoverModel` (`swc_classroom/router.py`) implements the Agents SDK `Model` interface. OpenAI plans run through the SDK's `OpenAIResponsesModel`; DeepSeek, Gemini and school machines speak Chat Completions and run through `OpenAIChatCompletionsModel`. When a run moves between providers, reasoning items are dropped so the next provider gets a clean transcript. On each model call the ring tries providers in the school's policy order and moves on when one returns 429, 402, 401/403, 5xx, a connection error, or has used its school-set daily token budget. A provider that fails stays skipped for the rest of that run. Every hop is returned to the UI, which shows it as a route trail on each answer and updates the budget bars.
 
 Because the switch happens per model call, not per conversation, a single task can start on one subscription and finish on another, including mid-handoff.
 
@@ -51,7 +52,7 @@ Because the switch happens per model call, not per conversation, a single task c
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env   # add the keys you have; missing providers show as offline
-.venv/bin/uvicorn botstack.app:app --port 8765
+.venv/bin/uvicorn swc_classroom.app:app --port 8765
 open http://127.0.0.1:8765
 ```
 
@@ -68,24 +69,25 @@ Headless walkthrough that regenerates the screenshots in `docs/`: `.venv/bin/pyt
 
 | Variable | Purpose |
 | --- | --- |
-| `OPENAI_API_KEY` | OpenAI provider, and Agents SDK trace export |
+| `OPENAI_API_KEY`, `OPENAI_API_KEY_2` … `_9` | One provider per OpenAI plan; the first also exports Agents SDK traces |
+| `OPENAI_LABEL_n` | Display name per plan, e.g. `PTA plan` |
 | `DEEPSEEK_API_KEY` | DeepSeek provider |
 | `GEMINI_API_KEY` | Gemini free-tier provider (OpenAI-compatible endpoint) |
-| `BOTSTACK_LAB_URL` | A school machine running Ollama, e.g. `http://lab-mac.local:11434/v1` |
-| `BOTSTACK_*_MODEL` | Override the model per provider |
-| `BOTSTACK_*_BUDGET` | Daily token budget per provider |
+| `SWC_MACHINES` | School machines running Ollama or LM Studio: `Library Mac=http://lib-mac.local:11434/v1;Room 204=http://10.0.0.24:11434/v1` |
+| `SWC_*_MODEL` | Override the model per provider |
+| `SWC_*_BUDGET` | Daily token budget per provider |
 
 ### Deploy
 
-Any container host works with the included `Dockerfile` (for example `gcloud run deploy botstack --source .` with the keys as environment variables). `vercel.json` also deploys the app as one Python function on Vercel.
+Live on Vercel (`vercel.json` deploys the FastAPI app as one Python function; set the keys as environment variables and run `vercel deploy --prod`). Any container host also works with the included `Dockerfile` (for example `gcloud run deploy specwithcode-classroom --source .` with the keys as environment variables).
 
 ## Layout
 
 ```
-botstack/router.py   Key Ring, providers, FailoverModel
-botstack/team.py     Agents: Coach, Slides Studio, Tutor, App Builder, safety guardrail
-botstack/slides.py   Deck to .pptx
-botstack/app.py      FastAPI API and static UI
+swc_classroom/router.py   Key Ring, providers, FailoverModel
+swc_classroom/team.py     Agents: Coach, Slides Studio, Tutor, App Builder, safety guardrail
+swc_classroom/slides.py   Deck to .pptx
+swc_classroom/app.py      FastAPI API and static UI
 static/              Frontend (HTML, CSS, JS, KaTeX, marked)
 tests/               Offline tests for failover and slides
 ```

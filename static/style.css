@@ -146,3 +146,12 @@ button { font: inherit; cursor: pointer; }
   .ring { border-right: 0; border-bottom: 1px solid var(--line); max-height: none; }
   #providers { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 }
+
+.spec-body { padding: 14px 18px; font-size: 14px; }
+.spec-body .goal { margin: 0 0 10px; font-size: 15px; }
+.spec-body h5 { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--coral); margin: 12px 0 6px; }
+.spec-body ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.spec-body .ac li { font-family: var(--mono); font-size: 12.5px; }
+.spec-body .ac li::before { content: "☐ "; color: var(--mint); }
+.spec-body ol { margin: 0; padding-left: 1.2em; display: grid; gap: 3px; }
+.brand h1 small { font: 600 13px var(--sans); color: var(--coral); margin-left: 6px; letter-spacing: 0; }

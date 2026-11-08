@@ -1,4 +1,4 @@
-"""Render a BotStack deck to a real .pptx the student can open in PowerPoint, Keynote or Google Slides."""
+"""Render a SpecWithCode Classroom deck to a real .pptx the student can open in PowerPoint, Keynote or Google Slides."""
 
 from __future__ import annotations
 

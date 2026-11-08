@@ -24,7 +24,7 @@ if os.getenv("OPENAI_API_KEY"):
     set_tracing_export_api_key(os.environ["OPENAI_API_KEY"])
 
 ring = KeyRing()
-app = FastAPI(title="BotStack")
+app = FastAPI(title="SpecWithCode Classroom")
 
 
 class Turn(BaseModel):

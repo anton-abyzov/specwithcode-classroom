@@ -7,7 +7,7 @@ from agents import ModelResponse
 from agents.models.interface import Model
 from agents.usage import Usage
 
-from botstack.router import FailoverModel, KeyRing, Provider
+from swc_classroom.router import FailoverModel, KeyRing, Provider
 
 
 class FakeModel(Model):
@@ -37,7 +37,7 @@ def rate_limit_error():
 def ring(monkeypatch):
     providers = []
     for pid in ("first", "second"):
-        key_env = f"BOTSTACK_TEST_{pid.upper()}_KEY"
+        key_env = f"SWC_TEST_{pid.upper()}_KEY"
         monkeypatch.setenv(key_env, "test-key")
         providers.append(
             Provider(
