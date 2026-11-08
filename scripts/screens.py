@@ -29,7 +29,7 @@ with sync_playwright() as pw:
     page.screenshot(path="docs/02a-relay-in-motion.png")
     wait_reply(page, 1)
     page.locator(".msg.bot .who-said").last.scroll_into_view_if_needed()
-    page.evaluate("window.scrollTo(0, 0)")
+    page.evaluate("document.querySelector('.msg.user').scrollIntoView({block: 'start'})")
     page.wait_for_timeout(1500)
     page.wait_for_timeout(800)
     page.screenshot(path="docs/02-failover-physics.png")

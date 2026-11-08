@@ -137,10 +137,15 @@ function stopPulse() {
   pulse = null;
 }
 
-async function relayWhileWaiting() {
+async function relayWhileWaiting(say = () => {}) {
   for (const p of state.providers) {
     if (p.status === "offline") continue;
-    if (state.exhausted.has(p.id) || p.status === "exhausted") { await bounceOff(p.id); continue; }
+    if (state.exhausted.has(p.id) || p.status === "exhausted") {
+      say(`${p.label} is out of tokens today, trying the next one`, "skip");
+      await bounceOff(p.id);
+      continue;
+    }
+    say(`Working on it with ${p.label} (${p.model})`, "live");
     await batonTo(p.id);
     nodeEl(p.id)?.classList.add("active");
     startPulse();
@@ -194,27 +199,21 @@ function addUser(text) {
   feed.appendChild(el);
 }
 
-function routeChips(route) {
-  const wrap = document.createElement("div");
-  wrap.className = "route";
-  const label = Object.fromEntries(state.providers.map((p) => [p.id, p.label.replace(" free tier", "")]));
-  const hops = [];
-  for (const e of route) {
-    const last = hops[hops.length - 1];
-    if (last && last.outcome === "served" && e.outcome === "served" && last.provider === e.provider) {
-      last.ms += e.ms; last.tokens += e.tokens; last.calls += 1;
-    } else hops.push({ ...e, calls: 1 });
-  }
-  for (const e of hops) {
-    const hop = document.createElement("span");
-    hop.className = `hop ${e.outcome}`;
-    hop.title = e.detail;
-    hop.textContent = e.outcome === "served"
-      ? `${label[e.provider] || e.provider} ✓ ${e.calls} calls · ${(e.ms / 1000).toFixed(1)}s · ${e.tokens.toLocaleString()} tok`
-      : `${label[e.provider] || e.provider} · ${e.detail.split(":")[0]}`;
-    wrap.appendChild(hop);
-  }
-  return wrap;
+function routeStory(route) {
+  const name = (id) => state.providers.find((p) => p.id === id)?.label || id;
+  const model = (id) => state.providers.find((p) => p.id === id)?.model || "";
+  const served = route.filter((e) => e.outcome === "served");
+  const skipped = [...new Set(route.filter((e) => e.outcome === "switched").map((e) => name(e.provider)))];
+  const order = [...new Set(served.map((e) => e.provider))];
+  const tokens = served.reduce((n, e) => n + e.tokens, 0);
+  const secs = served.reduce((n, e) => n + e.ms, 0) / 1000;
+  const list = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+  let text = order.length > 1
+    ? `Started on ${name(order[0])} and finished on ${name(order.at(-1))} after it ran out.`
+    : `Answered by ${name(order[0])} (${model(order[0])}).`;
+  if (skipped.length) text += ` ${list(skipped)} ${skipped.length > 1 ? "were" : "was"} out of tokens, so it moved on by itself.`;
+  text += ` ${served.length} model calls, ${tokens.toLocaleString()} tokens, ${secs.toFixed(0)} s. Cost to Maya: $0.`;
+  return text;
 }
 
 function slidesArtifact(deck) {
@@ -320,12 +319,23 @@ async function send(text) {
   addUser(text);
   const bot = document.createElement("div");
   bot.className = "msg bot";
-  bot.innerHTML = '<p class="thinking"><b>Coach</b> is finding a subscription with tokens left…</p>';
+  bot.innerHTML = '<ol class="progress"></ol><p class="elapsed"></p>';
   feed.appendChild(bot);
   move(bot, { opacity: [0, 1], y: [12, 0] }, { duration: 0.3 });
   bot.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "end" });
   $("#send").disabled = true;
-  relayWhileWaiting();
+  const say = (msg, kind) => {
+    const li = Object.assign(document.createElement("li"), { className: kind, textContent: msg });
+    bot.querySelector(".progress")?.appendChild(li);
+    move(li, { opacity: [0, 1], x: [-8, 0] }, { duration: 0.25 });
+  };
+  say("Finding a subscription that still has tokens", "done");
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const el = bot.querySelector(".elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - started) / 1000)} s. Writing the spec first, then the work.`;
+  }, 1000);
+  relayWhileWaiting(say);
   try {
     const r = await fetch("/api/chat", {
       method: "POST",
@@ -339,12 +349,16 @@ async function send(text) {
       state.ledger.push({ at, request: text.slice(0, 80), agent: data.agent, trace_id: data.trace_id, ...e });
     }
     saveLocal();
+    clearInterval(tick);
     bot.innerHTML = "";
     const head = document.createElement("div");
     head.className = "who-said";
-    head.innerHTML = '<span class="agent-tag"></span>';
+    head.innerHTML = '<span class="agent-tag"></span><p class="story"></p>';
     head.querySelector(".agent-tag").textContent = data.agent;
-    head.appendChild(routeChips(data.route));
+    head.querySelector(".story").append(routeStory(data.route));
+    const receipts = Object.assign(document.createElement("button"), { type: "button", className: "linkish", textContent: "See the receipts" });
+    receipts.onclick = () => $("#openLog").click();
+    head.querySelector(".story").append(" ", receipts);
     bot.appendChild(head);
     for (const a of data.artifacts) bot.appendChild(a.type === "slides" ? slidesArtifact(a) : a.type === "spec" ? specArtifact(a) : appArtifact(a));
     const body = document.createElement("div");
@@ -353,10 +367,12 @@ async function send(text) {
     bot.appendChild(body);
     state.history.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
     move(bot.children, { opacity: [0, 1], y: [10, 0] }, { delay: stagger(0.08), duration: 0.35 });
+    bot.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
     const servedBy = await landOn(data.route);
     state.providers = data.providers;
     renderRing(servedBy);
   } catch (err) {
+    clearInterval(tick);
     stopPulse();
     bot.innerHTML = `<p class="error"></p>`;
     bot.querySelector(".error").textContent = `This request didn't finish: ${err.message}. Try again, or refill a subscription above.`;

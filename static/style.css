@@ -221,3 +221,19 @@ a { color: inherit; }
 .log-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .log-empty { padding: 18px; color: var(--ink-soft); }
 .spec-body .ac li { padding-left: 0; }
+
+.progress { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 15px; }
+.progress li { padding-left: 24px; position: relative; color: var(--ink-soft); }
+.progress li::before { content: ""; position: absolute; left: 2px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+.progress li.done::before { background: var(--mint); }
+.progress li.skip { color: #c2185b; }
+.progress li.skip::before { background: var(--eraser); }
+.progress li.live { color: var(--ink); font-weight: 700; }
+.progress li.live::before { background: var(--bus); box-shadow: 0 0 0 4px rgba(255,196,0,.3); animation: blink 1.1s ease-in-out infinite; }
+@keyframes blink { 50% { box-shadow: 0 0 0 7px rgba(255,196,0,.05); } }
+.elapsed { margin: 8px 0 0; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.who-said { align-items: flex-start; flex-wrap: nowrap; }
+.story { margin: 0; font-size: 15px; color: var(--ink-soft); line-height: 1.45; }
+.linkish { border: 0; background: none; padding: 0; font-weight: 700; color: var(--ink); text-decoration: underline; text-decoration-color: var(--bus); text-decoration-thickness: 3px; text-underline-offset: 3px; }
+.agent-tag { flex: none; }
+@media (prefers-reduced-motion: reduce) { .progress li.live::before { animation: none; } }
