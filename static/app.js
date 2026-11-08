@@ -172,6 +172,18 @@ async function loadRing(activeId) {
   renderRing(activeId);
 }
 
+const MATH_DELIMITERS = [
+  { left: "$$", right: "$$", display: true },
+  { left: "\\[", right: "\\]", display: true },
+  { left: "$", right: "$", display: false },
+  { left: "\\(", right: "\\)", display: false },
+];
+
+function renderInlineMath(el, text) {
+  el.textContent = text;
+  renderMathInElement(el, { delimiters: MATH_DELIMITERS, throwOnError: false });
+}
+
 function renderMarkdown(el, text) {
   // Shield LaTeX from the markdown parser, which would eat its backslashes and underscores.
   const math = [];
@@ -181,15 +193,7 @@ function renderMarkdown(el, text) {
   });
   const esc = (m) => m.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   el.innerHTML = marked.parse(shielded).replace(/@@MATH(\d+)@@/g, (_, i) => esc(math[Number(i)]));
-  renderMathInElement(el, {
-    delimiters: [
-      { left: "$$", right: "$$", display: true },
-      { left: "\\[", right: "\\]", display: true },
-      { left: "$", right: "$", display: false },
-      { left: "\\(", right: "\\)", display: false },
-    ],
-    throwOnError: false,
-  });
+  renderMathInElement(el, { delimiters: MATH_DELIMITERS, throwOnError: false });
 }
 
 function addUser(text) {
@@ -301,7 +305,7 @@ function specArtifact(a) {
   box.innerHTML = `<div class="artifact-bar"><strong></strong><span class="check-count"></span></div>
     <div class="spec-body"><p class="goal"></p><h5>Done when (you check these)</h5><ul class="ac"></ul><h5>Plan</h5><ol class="tasks"></ol></div>`;
   box.querySelector("strong").textContent = `Spec: ${a.title}`;
-  box.querySelector(".goal").textContent = a.goal;
+  renderInlineMath(box.querySelector(".goal"), a.goal);
   const count = box.querySelector(".check-count");
   const update = () => {
     const boxes = [...box.querySelectorAll(".ac input")];
@@ -312,7 +316,7 @@ function specArtifact(a) {
   a.acceptance_criteria.forEach((t) => {
     const li = document.createElement("li");
     li.innerHTML = `<label><input type="checkbox"><span></span></label>`;
-    li.querySelector("span").textContent = t;
+    renderInlineMath(li.querySelector("span"), t);
     li.querySelector("input").onchange = (e) => {
       update();
       if (e.target.checked) move(e.target, { scale: [0.6, 1.15, 1] }, { duration: 0.3 });
@@ -321,7 +325,7 @@ function specArtifact(a) {
   });
   a.tasks.forEach((t) => {
     const li = document.createElement("li");
-    li.textContent = t;
+    renderInlineMath(li, t);
     box.querySelector(".tasks").appendChild(li);
   });
   update();
