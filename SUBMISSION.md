@@ -34,6 +34,14 @@ This project uses OpenAI to meet the hackathon requirements:
 2. **OpenAI API:** the first providers on the Key Ring are OpenAI plans running `gpt-6-luna` through the Responses API, one per plan the school holds, and Agents SDK traces export to the school's OpenAI dashboard whichever provider served the turn.
 3. **Codex:** Codex wrote the offline test suite for the failover router and the slide exporter (`tests/`, 10 tests).
 
+## Why students learn, not just copy
+
+Every task follows the SpecWithCode loop: spec, then the work, then the student checks it. The specialist first writes a "done when" checklist; the student ticks it off. In Learn mode (the default) the student always does the last step: the tutor stops before the final answer, the app builder leaves one feature marked `// YOUR TURN` with hints, and speaker notes ask the student to explain each slide in their own words.
+
+## Proof it works
+
+A usage log lists every model call with tokens in and out and the provider's receipt. For OpenAI calls, one click looks the response up on OpenAI's servers and shows the model and token counts as OpenAI reports them, and another opens the Agents SDK trace. In testing on the live site, OpenAI confirmed `gpt-6-luna` responses with exact token counts.
+
 ## Impact
 
 - No student loses AI help at third period because a free tier ran out. Cost to families: $0.

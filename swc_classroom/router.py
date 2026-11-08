@@ -230,6 +230,11 @@ class RouteEvent:
     detail: str
     ms: int = 0
     tokens: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    # Receipts from the provider: OpenAI response ids can be looked up again through the API.
+    response_id: str | None = None
+    request_id: str | None = None
 
     def public(self) -> dict[str, Any]:
         return self.__dict__.copy()
@@ -306,11 +311,22 @@ class FailoverModel(Model):
                 )
                 last = exc
                 continue
-            tokens = resp.usage.total_tokens if resp.usage else 0
+            usage = resp.usage
+            tokens = usage.total_tokens if usage else 0
             self.ring.charge(p, tokens)
             self.last_served = p.id
             self.events.append(
-                RouteEvent(p.id, "served", p.model, int((time.perf_counter() - started) * 1000), tokens)
+                RouteEvent(
+                    p.id,
+                    "served",
+                    p.model,
+                    int((time.perf_counter() - started) * 1000),
+                    tokens,
+                    input_tokens=usage.input_tokens if usage else 0,
+                    output_tokens=usage.output_tokens if usage else 0,
+                    response_id=resp.response_id,
+                    request_id=getattr(resp, "request_id", None),
+                )
             )
             return resp
         raise RuntimeError(

@@ -16,6 +16,18 @@ Her school already has more AI capacity than it uses: several OpenAI plans with 
 
 SpecWithCode Classroom is the one door in front of all of them. Maya asks for a presentation on volcanoes, a projectile problem, or an app for her book club. Coach routes the job to the right specialist agent, and the Key Ring routes every model call to whichever subscription still has tokens. When OpenAI plan A hits its daily cap at 10:40, the next call goes to plan B, then DeepSeek, then the library Mac, and Maya never sees an error. Families are billed $0.
 
+## Why it's called SpecWithCode
+
+Students learn more from a plain answer when they decide what "done" means and check it themselves. Every request runs the same loop:
+
+1. **Spec.** The specialist writes the goal and a short "done when" checklist the student can verify.
+2. **Code.** Then the work: slides, a worked solution, or a real app, built against that checklist.
+3. **Check.** The student ticks off each item. In **Learn** mode (the default) the last step is theirs: the tutor stops before the final step, the app builder leaves one criterion as a `// YOUR TURN` with hints, and speaker notes become prompts instead of a script.
+
+## Proof it runs on real tokens
+
+The **Usage log** records every model call this browser made: time, request, provider, model, tokens in and out, time taken, and the provider's receipt (an OpenAI `resp_…` id). **Check with OpenAI** calls `GET /v1/responses/{id}` through `/api/verify/...` and shows the model and token counts as OpenAI reports them. **Trace** opens the Agents SDK trace for the run in the OpenAI dashboard. The log can be exported as CSV. **Refill all** only undoes simulated outages; it never erases usage.
+
 ## What it does
 
 | Specialist | Output |

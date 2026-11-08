@@ -5,10 +5,10 @@ const move = (el, kf, opts = {}) => animate(el, kf, calm ? { duration: 0 } : opt
 const spring = { type: "spring", stiffness: 260, damping: 24 };
 
 const state = {
-  mode: "finish",
+  mode: "learn",
+  ledger: JSON.parse(localStorage.getItem("swc.ledger") || "[]"),
   history: [],
   exhausted: new Set(JSON.parse(localStorage.getItem("swc.exhausted") || "[]")),
-  switches: Number(localStorage.getItem("swc.switches") || 0),
   providers: [],
 };
 
@@ -18,7 +18,7 @@ const KIND = { grant: "Credits", "free-tier": "Free tier", subscription: "Subscr
 
 function saveLocal() {
   localStorage.setItem("swc.exhausted", JSON.stringify([...state.exhausted]));
-  localStorage.setItem("swc.switches", String(state.switches));
+  localStorage.setItem("swc.ledger", JSON.stringify(state.ledger.slice(-500)));
 }
 
 const meterWas = new Map();
@@ -30,12 +30,20 @@ function countTo(el, from, to) {
   animate(from, to, { duration: 0.8, ease: "easeOut", onUpdate: (v) => (el.textContent = Math.round(v).toLocaleString()) });
 }
 
+const today = () => new Date().toDateString();
+function todaysLedger() {
+  return state.ledger.filter((e) => new Date(e.at).toDateString() === today());
+}
+
 function renderRing(activeId) {
   const list = $("#providers");
   list.innerHTML = "";
-  let total = 0;
+  const rows = todaysLedger();
+  const usedBy = {};
+  for (const e of rows) usedBy[e.provider] = (usedBy[e.provider] || 0) + e.tokens;
+  const total = rows.reduce((n, e) => n + e.tokens, 0);
   for (const p of state.providers) {
-    total += p.used;
+    p.used = usedBy[p.id] || 0;
     const node = $("#tpl-provider").content.firstElementChild.cloneNode(true);
     node.dataset.id = p.id;
     node.classList.add(p.status);
@@ -69,7 +77,8 @@ function renderRing(activeId) {
   }
   countTo($("#totalTokens"), shownTokens, total);
   shownTokens = total;
-  $("#totalSwitches").textContent = state.switches;
+  $("#totalSwitches").textContent = rows.filter((e) => e.outcome === "switched").length;
+  $("#totalCalls").textContent = rows.filter((e) => e.outcome === "served").length;
   requestAnimationFrame(layoutWire);
 }
 
@@ -257,14 +266,25 @@ function slidesArtifact(deck) {
 function specArtifact(a) {
   const box = document.createElement("div");
   box.className = "artifact spec";
-  box.innerHTML = `<div class="artifact-bar"><strong></strong><span class="agent-tag">spec.md</span></div>
-    <div class="spec-body"><p class="goal"></p><h5>Acceptance criteria</h5><ul class="ac"></ul><h5>Tasks</h5><ol class="tasks"></ol></div>`;
-  box.querySelector("strong").textContent = a.title;
+  box.innerHTML = `<div class="artifact-bar"><strong></strong><span class="check-count"></span></div>
+    <div class="spec-body"><p class="goal"></p><h5>Done when (you check these)</h5><ul class="ac"></ul><h5>Plan</h5><ol class="tasks"></ol></div>`;
+  box.querySelector("strong").textContent = `Spec: ${a.title}`;
   box.querySelector(".goal").textContent = a.goal;
-  a.acceptance_criteria.forEach((t, i) => {
+  const count = box.querySelector(".check-count");
+  const update = () => {
+    const boxes = [...box.querySelectorAll(".ac input")];
+    const n = boxes.filter((b) => b.checked).length;
+    count.textContent = n === boxes.length ? `All ${n} checked by Maya` : `Maya checked ${n} of ${boxes.length}`;
+    count.classList.toggle("done", n === boxes.length);
+  };
+  a.acceptance_criteria.forEach((t) => {
     const li = document.createElement("li");
-    li.innerHTML = `<span>AC-${String(i + 1).padStart(2, "0")}</span>`;
-    li.append(t);
+    li.innerHTML = `<label><input type="checkbox"><span></span></label>`;
+    li.querySelector("span").textContent = t;
+    li.querySelector("input").onchange = (e) => {
+      update();
+      if (e.target.checked) move(e.target, { scale: [0.6, 1.15, 1] }, { duration: 0.3 });
+    };
     box.querySelector(".ac").appendChild(li);
   });
   a.tasks.forEach((t) => {
@@ -272,6 +292,7 @@ function specArtifact(a) {
     li.textContent = t;
     box.querySelector(".tasks").appendChild(li);
   });
+  update();
   return box;
 }
 
@@ -313,7 +334,10 @@ async function send(text) {
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.detail || r.statusText);
-    state.switches += data.route.filter((e) => e.outcome === "switched").length;
+    const at = new Date().toISOString();
+    for (const e of data.route) {
+      state.ledger.push({ at, request: text.slice(0, 80), agent: data.agent, trace_id: data.trace_id, ...e });
+    }
     saveLocal();
     bot.innerHTML = "";
     const head = document.createElement("div");
@@ -365,14 +389,100 @@ $("#openHow").onclick = () => {
   move(d, { opacity: [0, 1], scale: [0.96, 1] }, { duration: 0.25 });
 };
 addEventListener("resize", layoutWire);
+
+const labelOf = (id) => state.providers.find((p) => p.id === id)?.label || id;
+const isOpenAI = (id) => id.startsWith("openai");
+
+function renderLog() {
+  const rows = [...state.ledger].reverse();
+  const body = $("#logRows");
+  body.innerHTML = "";
+  const served = state.ledger.filter((e) => e.outcome === "served");
+  const sum = (f) => served.reduce((n, e) => n + (e[f] || 0), 0);
+  const byProvider = {};
+  for (const e of served) byProvider[e.provider] = (byProvider[e.provider] || 0) + e.tokens;
+  $("#logSum").innerHTML = "";
+  const chips = [
+    `${served.length} model calls`,
+    `${sum("input_tokens").toLocaleString()} tokens in`,
+    `${sum("output_tokens").toLocaleString()} tokens out`,
+    ...Object.entries(byProvider).map(([id, n]) => `${labelOf(id)}: ${n.toLocaleString()}`),
+  ];
+  for (const c of chips) $("#logSum").appendChild(Object.assign(document.createElement("span"), { textContent: c }));
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="log-empty">No calls yet. Ask for something and every model call will show up here.</td></tr>';
+    return;
+  }
+  for (const e of rows) {
+    const tr = document.createElement("tr");
+    tr.className = e.outcome;
+    const cells = [
+      new Date(e.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }),
+      `${e.agent}: ${e.request}`,
+      `${labelOf(e.provider)}${e.outcome === "served" ? `, ${e.detail}` : `, skipped (${e.detail})`}`,
+      e.outcome === "served" ? `${(e.input_tokens || 0).toLocaleString()} / ${(e.output_tokens || 0).toLocaleString()}` : "",
+      e.outcome === "served" ? `${(e.ms / 1000).toFixed(1)} s` : "",
+    ];
+    for (const c of cells) tr.appendChild(Object.assign(document.createElement("td"), { textContent: c }));
+    const td = document.createElement("td");
+    if (e.outcome === "served") {
+      const id = e.response_id || e.request_id;
+      td.appendChild(Object.assign(document.createElement("code"), { className: "receipt", textContent: id || "no id returned" }));
+      const actions = document.createElement("div");
+      actions.className = "receipt-actions";
+      if (e.response_id && isOpenAI(e.provider)) {
+        const b = Object.assign(document.createElement("button"), { className: "mini", type: "button", textContent: "Check with OpenAI" });
+        b.onclick = async () => {
+          b.textContent = "Checking…";
+          const r = await fetch(`/api/verify/${e.provider}/${e.response_id}`);
+          const v = await r.json();
+          if (r.ok) {
+            b.className = "mini ok";
+            b.textContent = `Confirmed: ${v.model}, ${v.input_tokens} in / ${v.output_tokens} out`;
+          } else {
+            b.className = "mini bad";
+            b.textContent = v.detail || "Not found";
+          }
+        };
+        actions.appendChild(b);
+      }
+      if (e.trace_id) {
+        actions.appendChild(Object.assign(document.createElement("a"), {
+          className: "mini", textContent: "Trace", target: "_blank", rel: "noopener",
+          href: `https://platform.openai.com/traces/trace?trace_id=${e.trace_id}`,
+        }));
+      }
+      td.appendChild(actions);
+    }
+    tr.appendChild(td);
+    body.appendChild(tr);
+  }
+}
+
+$("#openLog").onclick = () => {
+  renderLog();
+  const d = $("#log");
+  d.showModal();
+  move(d, { opacity: [0, 1], scale: [0.97, 1] }, { duration: 0.25 });
+};
+$("#clearLog").onclick = () => {
+  if (!confirm("Clear the usage log in this browser?")) return;
+  state.ledger = [];
+  saveLocal();
+  renderLog();
+  renderRing();
+};
+$("#exportLog").onclick = () => {
+  const cols = ["at", "agent", "request", "provider", "detail", "outcome", "input_tokens", "output_tokens", "tokens", "ms", "response_id", "request_id", "trace_id"];
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [cols.join(","), ...state.ledger.map((e) => cols.map((c) => q(e[c])).join(","))].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  Object.assign(document.createElement("a"), { href: url, download: "specwithcode-classroom-usage.csv" }).click();
+};
 $("#resetRing").onclick = async () => {
   state.exhausted.clear();
-  state.switches = 0;
   saveLocal();
-  const r = await fetch("/api/ring/reset", { method: "POST" });
-  state.providers = (await r.json()).providers;
-  meterWas.clear();
-  renderRing();
+  await loadRing();
   await move($("#baton"), { opacity: 0 }, { duration: 0.2 });
   batonAt = null;
 };

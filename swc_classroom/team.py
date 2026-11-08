@@ -97,7 +97,7 @@ def evaluate(expression: str) -> str:
 def write_spec(
     ctx: RunContextWrapper[Session], title: str, goal: str, acceptance_criteria: list[str], tasks: list[str]
 ) -> str:
-    """Write the one-page spec for a student project before building it (spec first, then code).
+    """Write the short spec for this piece of schoolwork before doing it (spec first, then the work).
 
     Args:
         title: Project name.
@@ -108,7 +108,7 @@ def write_spec(
     ctx.context.artifacts.append(
         {"type": "spec", "title": title, "goal": goal, "acceptance_criteria": acceptance_criteria, "tasks": tasks}
     )
-    return "Spec saved. Now build exactly what it says and call publish_app."
+    return "Spec saved and shown to the student. Now do the work it describes."
 
 
 @function_tool
@@ -125,21 +125,25 @@ def publish_app(ctx: RunContextWrapper[Session], name: str, description: str, ht
     return f"Published '{name}'. Tell the student how to change one thing in it themselves."
 
 
-def _profile(ctx: RunContextWrapper[Session]) -> str:
+SPEC_FIRST = (
+    "Work the SpecWithCode way: spec first, then the work, then the student checks it. Start by "
+    "calling write_spec once: the goal in the student's words, 3 or 4 acceptance criteria the "
+    "student can check themselves, and the tasks in order. Keep it short."
+)
+
+
+def _profile(ctx: RunContextWrapper[Session], learn: str, finish: str) -> str:
     s = ctx.context
-    mode = (
-        "LEARN MODE (teacher setting): guide with hints and worked steps; leave the last step "
-        "for the student and ask them to try it."
-        if s.mode == "learn"
-        else "FINISH MODE (teacher setting): complete the work fully, and explain every step so "
-        "the student can defend it in class."
-    )
+    mode = f"LEARN MODE (teacher setting): {learn}" if s.mode == "learn" else f"FINISH MODE (teacher setting): {finish}"
     return f"Student: {s.student}, grade {s.grade}. {mode} Keep language friendly and age-appropriate."
 
 
-def _instructions(role: str):
+def _instructions(role: str, learn: str = "", finish: str = ""):
+    learn = learn or "guide with hints and worked steps; leave the last step for the student."
+    finish = finish or "complete the work fully and explain every step so the student can defend it in class."
+
     def build(ctx: RunContextWrapper[Session], agent: Agent[Session]) -> str:
-        return f"{role}\n\n{_profile(ctx)}"
+        return f"{role}\n\n{_profile(ctx, learn, finish)}"
 
     return build
 
@@ -173,12 +177,14 @@ def build_team(model: Model) -> Agent[Session]:
         name="Slides Studio",
         handoff_description="Builds presentations and slide decks for any subject.",
         instructions=_instructions(
-            "You turn a topic or assignment into a clear class presentation. Research from your own "
-            "knowledge, then call make_slides exactly once with 5 to 7 slides: a hook, the core "
-            "ideas, one example or diagram described in words, and a recap. After saving, give the "
-            "student two tips for presenting it."
+            f"You turn a topic or assignment into a clear class presentation. {SPEC_FIRST} Then call "
+            "make_slides exactly once with 5 to 7 slides: a hook, the core ideas, one example or "
+            "diagram described in words, and a recap. After saving, give two tips for presenting it.",
+            learn="speaker notes are prompts and questions that make the student explain each slide in "
+            "their own words, not a script to read. End by asking the student to rewrite one slide's notes.",
+            finish="speaker notes are a full script the student can practice with.",
         ),
-        tools=[make_slides],
+        tools=[write_spec, make_slides],
         model=model,
         model_settings=settings,
     )
@@ -187,12 +193,16 @@ def build_team(model: Model) -> Agent[Session]:
         name="Math & Physics Tutor",
         handoff_description="Solves and explains math and physics problems step by step.",
         instructions=_instructions(
-            "You are a patient math and physics tutor. Always verify results with solve_equation or "
-            "evaluate before stating them. Write math in LaTeX between $...$ or $$...$$. Structure: "
-            "**What we know**, **Plan**, numbered **Steps**, **Answer** (with units), then one "
-            "**Check yourself** question."
+            f"You are a patient math and physics tutor. {SPEC_FIRST} For a problem the goal is what we "
+            "must find, and the criteria are how we will know the answer is right (units, a sanity "
+            "check, plugging the answer back in). Always verify results with solve_equation or evaluate "
+            "before stating them. Write math in LaTeX between $...$ or $$...$$. Structure: **What we "
+            "know**, **Plan**, numbered **Steps**, then **Check yourself** with one new question.",
+            learn="work the steps but stop before the final step; ask the student to finish it and "
+            "tell them which criterion to check their answer against. Do not reveal the final number.",
+            finish="give every step and the final **Answer** with units.",
         ),
-        tools=[solve_equation, evaluate],
+        tools=[write_spec, solve_equation, evaluate],
         model=model,
         model_settings=settings,
     )
@@ -201,12 +211,14 @@ def build_team(model: Model) -> Agent[Session]:
         name="App Builder",
         handoff_description="Builds websites and mobile web apps the student can publish and edit.",
         instructions=_instructions(
-            "You help students build real websites and mobile apps the SpecWithCode way: spec first, "
-            "then code. First call write_spec with the goal, acceptance criteria and tasks. Then build "
-            "it as single-file HTML (installable on a phone from the browser). Design it well: a clear layout, good typography, working "
-            "JavaScript, no placeholder text. Call publish_app exactly once with the full document. "
-            "Then say which acceptance criteria are met, explain in 3 bullets how it works, and suggest "
-            "one feature the student could add to the spec next."
+            f"You help students build real websites and mobile apps. {SPEC_FIRST} Then build it as "
+            "single-file HTML (installable on a phone from the browser). Design it well: a clear "
+            "layout, good typography, working JavaScript, no placeholder text. Call publish_app "
+            "exactly once with the full document. Then say how the student can test each acceptance "
+            "criterion, and explain in 3 bullets how the code works.",
+            learn="build every criterion except the last one. For the last one, leave a clearly marked "
+            "// YOUR TURN comment in the code where it goes, and give the student 3 hints to write it.",
+            finish="build every criterion, then suggest one feature to add to the spec next.",
         ),
         tools=[write_spec, publish_app],
         model=model,
