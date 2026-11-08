@@ -249,7 +249,7 @@ function routeStory(route) {
     ? `Started on ${name(order[0])} and finished on ${name(order.at(-1))} after it ran out.`
     : `Answered by ${name(order[0])} (${model(order[0])}).`;
   if (skipped.length) text += ` ${list(skipped)} ${skipped.length > 1 ? "were" : "was"} out of tokens, so it moved on by itself.`;
-  text += ` ${served.length} model calls, ${tokens.toLocaleString()} tokens, ${secs.toFixed(0)} s. Cost to Maya: $0.`;
+  text += ` ${served.length} model calls, ${tokens.toLocaleString()} tokens, ${secs.toFixed(0)} s. Cost to families: $0.`;
   return text;
 }
 
@@ -310,7 +310,8 @@ function specArtifact(a) {
   const update = () => {
     const boxes = [...box.querySelectorAll(".ac input")];
     const n = boxes.filter((b) => b.checked).length;
-    count.textContent = n === boxes.length ? `All ${n} checked by Maya` : `Maya checked ${n} of ${boxes.length}`;
+    const who = state.mode === "learn" ? "Maya" : "you";
+    count.textContent = n === boxes.length ? `All ${n} checked by ${who}` : `${who === "you" ? "You" : who} checked ${n} of ${boxes.length}`;
     count.classList.toggle("done", n === boxes.length);
   };
   a.acceptance_criteria.forEach((t) => {
@@ -432,12 +433,37 @@ $("#input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#composer").requestSubmit(); }
 });
 document.querySelectorAll(".starters button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
+const PERSONA = {
+  learn: {
+    initial: "M", name: "Maya", role: "Grade 7, Bayside K-8",
+    title: "What are we working on, Maya?",
+    text: "An assistant, not a shortcut. It won't do your homework for you. It plans with you, gives hints and asks questions, and leaves the next step to you, so you understand it and can explain it in class.",
+  },
+  teach: {
+    initial: "R", name: "Ms. Rivera", role: "Grade 7 science, Bayside K-8",
+    title: "What are you teaching this week?",
+    text: "Make quizzes with answer keys, lesson decks and practice apps, or paste your students' answers to get them checked, with one line of feedback each and what to reteach. Every result starts with a spec you can check.",
+  },
+};
 document.querySelectorAll(".mode button").forEach((b) => (b.onclick = () => {
   state.mode = b.dataset.mode;
   document.querySelectorAll(".mode button").forEach((x) => {
     x.classList.toggle("on", x === b);
     x.setAttribute("aria-checked", String(x === b));
   });
+  const p = PERSONA[state.mode];
+  $("#avatar").textContent = p.initial;
+  $("#whoName").textContent = p.name;
+  $("#whoRole").textContent = p.role;
+  if ($("#welcomeTitle")) {
+    $("#welcomeTitle").textContent = p.title;
+    $("#welcomeText").textContent = p.text;
+    document.querySelectorAll(".starters").forEach((g) => (g.hidden = g.dataset.for !== state.mode));
+    move(`.starters[data-for="${state.mode}"] button`, { opacity: [0, 1], y: [8, 0] }, { delay: stagger(0.05), duration: 0.3 });
+  }
+  $("#input").placeholder = state.mode === "learn"
+    ? "Ask for help planning slides, a hint on a problem, a quiz, or an app to build together…"
+    : "Ask for a quiz, a lesson deck or a practice app, or paste student answers to check…";
 }));
 $("#openHow").onclick = () => {
   const d = $("#how");

@@ -245,3 +245,4 @@ a { color: inherit; }
 .usage td { padding: 6px 10px; border-top: 1px solid var(--line); }
 .usage tr.served td:nth-child(3) { color: #0f7a52; font-weight: 700; }
 .usage tr.switched td { color: #c2185b; }
+.starters[hidden] { display: none; }

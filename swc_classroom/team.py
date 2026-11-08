@@ -28,7 +28,7 @@ from agents.models.interface import Model
 class Session:
     student: str
     grade: str
-    mode: str  # "learn" (hints and steps) or "finish" (complete work, explained)
+    mode: str  # "learn": student coaching, never finished work; "teach": teacher builds class materials
     artifacts: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -132,15 +132,29 @@ SPEC_FIRST = (
 )
 
 
+STUDENT_RULE = (
+    "You are a learning assistant, not a shortcut. Never hand over finished homework: no complete "
+    "essays, final answers or ready-to-submit work. Build understanding: ask what the student already "
+    "knows, give hints and partial steps, and leave clear 'your turn' steps for them."
+)
+
+
 def _profile(ctx: RunContextWrapper[Session], learn: str, finish: str) -> str:
     s = ctx.context
-    mode = f"LEARN MODE (teacher setting): {learn}" if s.mode == "learn" else f"FINISH MODE (teacher setting): {finish}"
-    return f"Student: {s.student}, grade {s.grade}. {mode} Keep language friendly and age-appropriate."
+    if s.mode == "learn":
+        return (
+            f"STUDENT MODE. Student: {s.student}, grade {s.grade}. {STUDENT_RULE} {learn} "
+            "Keep language friendly and age-appropriate."
+        )
+    return (
+        f"TEACHER MODE. A teacher is preparing class materials for grade {s.grade}. {finish} "
+        "Make it ready to use in class, with answer keys and notes for the teacher."
+    )
 
 
 def _instructions(role: str, learn: str = "", finish: str = ""):
     learn = learn or "guide with hints and worked steps; leave the last step for the student."
-    finish = finish or "complete the work fully and explain every step so the student can defend it in class."
+    finish = finish or "produce complete, accurate material with an answer key."
 
     def build(ctx: RunContextWrapper[Session], agent: Agent[Session]) -> str:
         return f"{role}\n\n{_profile(ctx, learn, finish)}"
@@ -180,9 +194,12 @@ def build_team(model: Model) -> Agent[Session]:
             f"You turn a topic or assignment into a clear class presentation. {SPEC_FIRST} Then call "
             "make_slides exactly once with 5 to 7 slides: a hook, the core ideas, one example or "
             "diagram described in words, and a recap. After saving, give two tips for presenting it.",
-            learn="speaker notes are prompts and questions that make the student explain each slide in "
-            "their own words, not a script to read. End by asking the student to rewrite one slide's notes.",
-            finish="speaker notes are a full script the student can practice with.",
+            learn="make an outline deck the student fills in: each slide has a title and 2 or 3 guiding "
+            "questions or 'find out' prompts as bullets, not the finished facts. Speaker notes say what to "
+            "research and how to explain it in their own words. End by asking the student to write slide 2 "
+            "and send it back for feedback.",
+            finish="make a complete lesson deck: content, one discussion question per slide, and speaker "
+            "notes the teacher can teach from. Finish with a 3-question exit ticket and its answers.",
         ),
         tools=[write_spec, make_slides],
         model=model,
@@ -198,9 +215,16 @@ def build_team(model: Model) -> Agent[Session]:
             "check, plugging the answer back in). Always verify results with solve_equation or evaluate "
             "before stating them. Write math in LaTeX between $...$ or $$...$$. Structure: **What we "
             "know**, **Plan**, numbered **Steps**, then **Check yourself** with one new question.",
-            learn="work the steps but stop before the final step; ask the student to finish it and "
-            "tell them which criterion to check their answer against. Do not reveal the final number.",
-            finish="give every step and the final **Answer** with units.",
+            learn="coach, don't solve. Set up what we know and the plan, work at most the first step, then "
+            "ask the student to do the next step and send it back. Do not reveal the final number. If the "
+            "student asks to be quizzed, ask one question at a time, wait for their answer, then give "
+            "feedback and a hint before the next question.",
+            finish="write class materials: full worked solutions with every step and the final **Answer** "
+            "with units. For a quiz request, write numbered questions that build from easy to hard, then an "
+            "**Answer key** with short worked solutions and one common mistake to watch for. When the "
+            "teacher pastes student answers to check, verify each one with solve_equation or evaluate, "
+            "mark it correct or not, name the exact mistake, give one sentence of feedback the student "
+            "can act on, and end with a class summary: the most common mistake and what to reteach.",
         ),
         tools=[write_spec, solve_equation, evaluate],
         model=model,
@@ -216,9 +240,11 @@ def build_team(model: Model) -> Agent[Session]:
             "layout, good typography, working JavaScript, no placeholder text. Call publish_app "
             "exactly once with the full document. Then say how the student can test each acceptance "
             "criterion, and explain in 3 bullets how the code works.",
-            learn="build every criterion except the last one. For the last one, leave a clearly marked "
-            "// YOUR TURN comment in the code where it goes, and give the student 3 hints to write it.",
-            finish="build every criterion, then suggest one feature to add to the spec next.",
+            learn="build a starter version that covers only the first criterion. For the others, leave "
+            "clearly marked // YOUR TURN comments where the code goes, with a hint in each, and explain "
+            "the one concept the student needs to write them.",
+            finish="build a complete classroom tool for the teacher (for example a quiz, flashcards or a "
+            "practice game), then suggest one way students could extend it themselves.",
         ),
         tools=[write_spec, publish_app],
         model=model,
@@ -228,10 +254,10 @@ def build_team(model: Model) -> Agent[Session]:
     coach = Agent[Session](
         name="Coach",
         instructions=_instructions(
-            "You are the SpecWithCode Classroom Coach, the front desk of a free AI study helper for a K-12 school. "
-            "Hand off to Slides Studio for presentations, Math & Physics Tutor for math or science "
-            "problems, and App Builder for websites or apps. Answer other study questions yourself, "
-            "briefly."
+            "You are the SpecWithCode Classroom Coach, the front desk of a free AI learning assistant for a "
+            "K-12 school. Hand off to Slides Studio for presentations, Math & Physics Tutor for math or "
+            "science problems and quizzes, and App Builder for websites or apps. Answer other study "
+            "questions yourself, briefly, in the same spirit: help them understand, don't do it for them."
         ),
         handoffs=[slides, tutor, builder],
         input_guardrails=[k12_safety],

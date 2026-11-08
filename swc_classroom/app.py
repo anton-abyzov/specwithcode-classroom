@@ -46,7 +46,8 @@ class ChatRequest(BaseModel):
     history: list[Turn] = Field(default_factory=list)
     student: str = "Maya"
     grade: str = "7"
-    mode: Literal["learn", "finish"] = "learn"
+    # "finish" is the old name for "teach", kept for clients with a cached page.
+    mode: Literal["learn", "teach", "finish"] = "learn"
     exhausted: list[str] = Field(default_factory=list)
 
 
@@ -65,7 +66,7 @@ def reset_ring() -> dict[str, Any]:
 async def chat(req: ChatRequest) -> dict[str, Any]:
     exhausted = set(req.exhausted)
     model = FailoverModel(ring, exhausted=exhausted)
-    session = Session(student=req.student, grade=req.grade, mode=req.mode)
+    session = Session(student=req.student, grade=req.grade, mode="learn" if req.mode == "learn" else "teach")
     items: list[Any] = [{"role": t.role, "content": t.content} for t in req.history[-8:]]
     items.append({"role": "user", "content": req.message})
     trace_id = gen_trace_id()

@@ -22,11 +22,11 @@
     <a href="https://github.com/anton-abyzov/specwithcode-classroom" target="_blank" rel="noopener">Source code</a>
   </nav>
   <div class="who">
-    <span class="avatar" aria-hidden="true">M</span>
-    <span class="who-text"><strong>Maya</strong><small>Grade 7, Bayside K-8</small></span>
-    <div class="mode" role="radiogroup" aria-label="Teacher setting">
-      <button role="radio" aria-checked="true" data-mode="learn" class="on" title="Maya does the last step herself">Learn</button>
-      <button role="radio" aria-checked="false" data-mode="finish" title="Complete work, fully explained">Finish</button>
+    <span class="avatar" aria-hidden="true" id="avatar">M</span>
+    <span class="who-text"><strong id="whoName">Maya</strong><small id="whoRole">Grade 7, Bayside K-8</small></span>
+    <div class="mode" role="radiogroup" aria-label="Who is using it">
+      <button role="radio" aria-checked="true" data-mode="learn" class="on" title="A coach: hints, questions and your-turn steps, never the finished homework">Student</button>
+      <button role="radio" aria-checked="false" data-mode="teach" title="Builds class materials: quizzes with answer keys, lesson decks, worked examples">Teacher</button>
     </div>
   </div>
 </header>
@@ -58,24 +58,30 @@
 <main class="desk">
   <div id="feed" class="feed" aria-live="polite">
     <div class="welcome">
-      <h1>What are we working on, Maya?</h1>
-      <p>Ask for slides, a worked math or physics problem, or a website or app. You'll learn more than you would from a plain answer, because you decide what "done" means and you check it.</p>
+      <h1 id="welcomeTitle">What are we working on, Maya?</h1>
+      <p id="welcomeText">An assistant, not a shortcut. It won't do your homework for you. It plans with you, gives hints and asks questions, and leaves the next step to you, so you understand it and can explain it in class.</p>
       <ol class="loop" aria-label="Why it's called SpecWithCode">
         <li><b>Spec</b><span>First, the goal and a short checklist of what "done" looks like.</span></li>
         <li><b>Code</b><span>Then the work: slides, a worked solution or a real app, built against that checklist.</span></li>
-        <li><b>Check</b><span>You tick off each item yourself. In Learn mode the last step is yours.</span></li>
+        <li><b>Check</b><span>You do the "your turn" steps and tick off each item yourself.</span></li>
       </ol>
-      <div class="starters">
-        <button data-prompt="Make a 6-slide presentation for science class on how volcanoes form, with speaker notes."><span class="s-ico">🌋</span><b>Slides</b>How volcanoes form</button>
-        <button data-prompt="A skateboarder rolls off a 1.2 m ledge at 3 m/s. How far from the ledge does she land? Use g = 9.8 m/s²."><span class="s-ico">🛹</span><b>Physics</b>Where does the skateboarder land?</button>
-        <button data-prompt="Solve 2x² + 3x − 5 = 0 and explain each step."><span class="s-ico">➗</span><b>Math</b>Solve 2x² + 3x − 5 = 0</button>
-        <button data-prompt="Build a mobile app for our class book club: list of books, a reading-minutes tracker per day saved on the phone, and a progress ring."><span class="s-ico">📱</span><b>App</b>A book club app for my phone</button>
+      <div class="starters" data-for="learn">
+        <button data-prompt="I have to present on how volcanoes form in science class. Help me plan a 6-slide presentation that I will write myself."><span class="s-ico">🌋</span><b>Slides</b>Plan my volcano presentation</button>
+        <button data-prompt="Coach me through this one, don't just give me the answer: a skateboarder rolls off a 1.2 m ledge at 3 m/s. How far from the ledge does she land? Use g = 9.8 m/s²."><span class="s-ico">🛹</span><b>Physics</b>Coach me: where does the skateboarder land?</button>
+        <button data-prompt="Quiz me on solving quadratic equations, one question at a time, and tell me what I got wrong."><span class="s-ico">➗</span><b>Quiz</b>Quiz me on quadratic equations</button>
+        <button data-prompt="Help me build a mobile app for our class book club: list of books, a reading-minutes tracker per day saved on the phone, and a progress ring. I want to write part of the code myself."><span class="s-ico">📱</span><b>App</b>Build a book club app with me</button>
+      </div>
+      <div class="starters" data-for="teach" hidden>
+        <button data-prompt="Make a 10-question quiz for grade 7 on solving quadratic equations, easy to hard, with an answer key and one common mistake per question."><span class="s-ico">📝</span><b>Quiz</b>Quadratics quiz with answer key</button>
+        <button data-prompt="Check my students' answers to: solve x² − 5x + 6 = 0. Ana: x = 2 and x = 3. Ben: x = −2 and x = −3. Chloe: x = 6. Dev: x = 3 only. Mark each one, name the mistake, give each student one line of feedback, and tell me what to reteach."><span class="s-ico">✅</span><b>Check</b>Check my students' answers</button>
+        <button data-prompt="Write 3 worked examples of projectile motion for grade 7, from easy to harder, using everyday situations like a skateboarder rolling off a ledge."><span class="s-ico">🛹</span><b>Examples</b>Projectile motion worked examples</button>
+        <button data-prompt="Build a flashcard practice app for this week's science vocabulary: magma, lava, crust, mantle, tectonic plate, vent, eruption. Track which cards a student knows."><span class="s-ico">🃏</span><b>App</b>Vocabulary flashcards for class</button>
       </div>
     </div>
   </div>
   <form id="composer" class="composer">
     <label for="input" class="sr">Your request</label>
-    <textarea id="input" rows="1" placeholder="Ask for slides, a math or physics answer, or an app…" required></textarea>
+    <textarea id="input" rows="1" placeholder="Ask for help planning slides, a hint on a problem, a quiz, or an app to build together…" required></textarea>
     <button type="submit" id="send">Send</button>
   </form>
 </main>
@@ -106,10 +112,10 @@
   <h2 id="howTitle">How it works</h2>
   <ol class="steps">
     <li><b>The school connects what it already has.</b> OpenAI plans with GPT-6 Luna credits, the Gemini free tier, a low-cost DeepSeek backup, and school computers signed in to Codex.</li>
-    <li><b>A coach sends each request to a specialist.</b> Slides, math and physics, or app building. Each one starts with a spec: the goal and a checklist the student can verify. That is the SpecWithCode idea: spec first, then the work, then the student checks it.</li>
+    <li><b>A coach sends each request to a specialist.</b> Slides, math and physics, or app building. Each one starts with a spec: the goal and a checklist the student can verify. That is the SpecWithCode idea: spec first, then the work, then the student checks it. For students it is an assistant, not a shortcut: hints, questions and "your turn" steps, never finished homework.</li>
     <li><b>Every step goes to the first one with tokens left.</b> If it runs out or goes down mid-answer, the next one finishes the job. Students never see an error, families pay nothing, and every call is in the usage log with the provider's receipt.</li>
   </ol>
-  <p class="how-foot">Teachers choose <b>Learn</b> (hints, the student does the last step) or <b>Finish</b> (complete work, explained). Every request passes a K-12 safety check.</p>
+  <p class="how-foot"><b>Student</b> mode coaches and never hands over finished work. <b>Teacher</b> mode builds class materials (quizzes with answer keys, lesson decks, worked examples, practice apps) and checks student answers with feedback and what to reteach. Every request passes a K-12 safety check.</p>
 </dialog>
 
 <template id="tpl-provider">
