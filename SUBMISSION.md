@@ -16,13 +16,13 @@ SpecWithCode Classroom pools a school's donated, free and low-cost AI subscripti
 
 ## The problem
 
-Students use free AI tiers every day, and the free tier runs out by mid-morning. Kids whose families pay keep working; everyone else stops. Schools often already hold more AI capacity than they use (nonprofit API credits, a cheap subscription, a free tier on the district account, a computer that can run an open model), but it is scattered across logins and nobody switches between them during a lesson.
+Students use free AI tiers every day, and the free tier runs out by mid-morning. Kids whose families pay keep working; everyone else stops. Schools often already hold more AI capacity than they use (nonprofit API credits, a free tier on the district account, a low-cost backup plan, a computer signed in to Codex), but it is scattered across logins and nobody switches between them during a lesson.
 
 ## What we built
 
 A working web app a school can deploy today.
 
-- **Key Ring with automatic failover.** A custom OpenAI Agents SDK `Model` walks the school's providers in policy order (every OpenAI plan the school holds, each with GPT-6 Luna credits, then DeepSeek, the Gemini free tier, and school computers running open models) and moves to the next one on a 429, quota error, outage, or when the school's daily token budget for that provider is spent. The switch happens per model call, so a task can start on one subscription and finish on another without the student seeing an error. Each answer shows its route, and the sidebar shows live budgets.
+- **Key Ring with automatic failover.** A custom OpenAI Agents SDK `Model` walks the school's providers in policy order (every OpenAI plan the school holds, each with GPT-6 Luna credits, then the Gemini free tier, a low-cost DeepSeek backup, and school computers) and moves to the next one on a 429, quota error, outage, or when the school's daily token budget for that provider is spent. The switch happens per model call, so a task can start on one subscription and finish on another without the student seeing an error. Each answer shows its route, and the sidebar shows live budgets.
 - **Agents that finish real schoolwork.** A Coach agent hands off to Slides Studio (decks with speaker notes, downloadable `.pptx`), a Math & Physics Tutor (step-by-step LaTeX, every result verified with SymPy), and an App Builder that works spec first, like SpecWithCode: a one-page spec with acceptance criteria, then a complete mobile web app previewed in a phone frame.
 - **Teacher controls and safety.** Learn mode gives hints and leaves the last step to the student; Finish mode completes the work and explains it. A K-12 input guardrail screens every request.
 
@@ -50,7 +50,7 @@ A usage log lists every model call with tokens in and out and the provider's rec
 
 ## Demo (2 minutes)
 
-See `DEMO.md`. Short version: tap **Run out** on both OpenAI plans, ask a physics question, and the answer arrives from DeepSeek with the route trail showing the switch; then generate a slide deck and a book club app.
+See `DEMO.md`. Short version: tap **Run out** on both OpenAI plans, ask a physics question, and the answer arrives from Gemini with the route trail showing the switch; then generate a slide deck and a book club app.
 
 ## What's next
 

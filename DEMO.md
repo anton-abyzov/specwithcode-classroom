@@ -2,9 +2,9 @@
 
 **0:00 The problem.** "This is Maya, 7th grade in Miami. Her class runs out of free AI by third period. Her school already has AI credits, a cheap subscription, a free tier and a lab computer. They are just in four places."
 
-**0:20 The Key Ring.** Point at the sidebar: the school's providers in policy order, each with a daily budget. "Two OpenAI plans with GPT-6 Luna credits first, then DeepSeek, then Gemini's free tier, then school computers."
+**0:20 The Key Ring.** Point at the sidebar: the school's providers in policy order, each with a daily budget. "Two OpenAI plans with GPT-6 Luna credits first, then Gemini's free tier, then a low-cost DeepSeek backup, then school computers."
 
-**0:35 Failover, live.** Tap **Run out** on *OpenAI plan A* and *OpenAI plan B*. Click the **Physics: projectile** chip. When the answer lands, point at the route trail: both OpenAI plans crossed out with `HTTP 429`, then `DeepSeek ✓`. "Both plans ran out mid-class. Maya never saw an error. The auto-switch counter went up and families paid $0."
+**0:35 Failover, live.** Tap **Run out** on *OpenAI plan A* and *OpenAI plan B*. Click the **Physics: projectile** chip. When the answer lands, point at the route trail: both OpenAI plans crossed out with `HTTP 429`, then `Gemini free tier ✓`. "Both plans ran out mid-class. Maya never saw an error. The auto-switch counter went up and families paid $0."
 
 **1:00 Real work: math.** Scroll the answer: steps in LaTeX, checked with SymPy, a "check yourself" question at the end. Point at the spec card: "Spec first: here is what done means, and Maya ticks it off herself. In Learn mode she does the last step; Finish mode gives the full answer."
 

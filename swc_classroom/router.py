@@ -130,22 +130,10 @@ def machines() -> list[Provider]:
 
 
 def default_ring() -> list[Provider]:
-    """Policy order a school admin would set: OpenAI plans first, other subscriptions and
-    free tiers next, school machines last so student work never stops."""
+    """Policy order a school admin would set: OpenAI plans first, then the Gemini free tier,
+    a low-cost DeepSeek backup, and school machines last so student work never stops."""
     return [
         *openai_plans(),
-        Provider(
-            id="deepseek",
-            label="DeepSeek",
-            kind="subscription",
-            base_url="https://api.deepseek.com",
-            key_env="DEEPSEEK_API_KEY",
-            model=os.getenv("SWC_DEEPSEEK_MODEL", "deepseek-flash"),
-            daily_token_budget=_budget("DEEPSEEK", 400_000),
-            note="Low-cost subscription the school already pays for",
-            # Thinking mode demands its own reasoning replay, which breaks mid-run handovers.
-            extra_body={"thinking": {"type": "disabled"}},
-        ),
         Provider(
             id="gemini",
             label="Gemini free tier",
@@ -155,6 +143,18 @@ def default_ring() -> list[Provider]:
             model=os.getenv("SWC_GEMINI_MODEL", "gemini-2.5-flash"),
             daily_token_budget=_budget("GEMINI", 250_000),
             note="Free daily quota",
+        ),
+        Provider(
+            id="deepseek",
+            label="DeepSeek",
+            kind="subscription",
+            base_url="https://api.deepseek.com",
+            key_env="DEEPSEEK_API_KEY",
+            model=os.getenv("SWC_DEEPSEEK_MODEL", "deepseek-flash"),
+            daily_token_budget=_budget("DEEPSEEK", 400_000),
+            note="Low-cost backup for heavy days",
+            # Thinking mode demands its own reasoning replay, which breaks mid-run handovers.
+            extra_body={"thinking": {"type": "disabled"}},
         ),
         *machines(),
     ]

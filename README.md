@@ -12,9 +12,9 @@ Built at the DevDay Exchange Community Hackathon: Miami (November 7 and 8, 2026)
 
 Maya is in 7th grade at a Miami K-8 school. Her class uses free AI tools every day, and every day the free tier runs out around third period. Families who can pay keep going; Maya's class stops.
 
-Her school already has more AI capacity than it uses: several OpenAI plans with GPT-6 Luna credits (a nonprofit grant, a PTA plan, a teacher's donated plan), a cheap DeepSeek subscription, a Gemini free tier on the district account, and a Mac in the library that can run an open model. They just live in four places, with four logins, and nobody switches between them in the middle of a lesson.
+Her school already has more AI capacity than it uses: several OpenAI plans with GPT-6 Luna credits (a nonprofit grant, a PTA plan, a teacher's donated plan), a Gemini free tier on the district account, a low-cost DeepSeek plan as a backup, and a library Mac signed in to Codex on a ChatGPT plan. They just live in four places, with four logins, and nobody switches between them in the middle of a lesson.
 
-SpecWithCode Classroom is the one door in front of all of them. Maya asks for a presentation on volcanoes, a projectile problem, or an app for her book club. Coach routes the job to the right specialist agent, and the Key Ring routes every model call to whichever subscription still has tokens. When OpenAI plan A hits its daily cap at 10:40, the next call goes to plan B, then DeepSeek, then the library Mac, and Maya never sees an error. Families are billed $0.
+SpecWithCode Classroom is the one door in front of all of them. Maya asks for a presentation on volcanoes, a projectile problem, or an app for her book club. Coach routes the job to the right specialist agent, and the Key Ring routes every model call to whichever subscription still has tokens. When OpenAI plan A hits its daily cap at 10:40, the next call goes to plan B, then Gemini, then DeepSeek, then the library Mac, and Maya never sees an error. Families are billed $0.
 
 ## Why it's called SpecWithCode
 
@@ -62,12 +62,12 @@ flowchart LR
   C & SL & T & B --> F[FailoverModel]
   F --> O1[OpenAI plan A · gpt-6-luna]
   O1 -. 429 / quota / budget .-> O2[OpenAI plan B · gpt-6-luna]
-  O2 -.-> D[DeepSeek]
-  D -. down .-> G[Gemini free tier]
-  G -. offline .-> L[School machines · Ollama]
+  O2 -.-> G[Gemini free tier]
+  G -. down .-> D[DeepSeek, low-cost backup]
+  D -. offline .-> L[School Mac · Codex on a ChatGPT plan]
 ```
 
-`FailoverModel` (`swc_classroom/router.py`) implements the Agents SDK `Model` interface. OpenAI plans run through the SDK's `OpenAIResponsesModel`; DeepSeek, Gemini and school machines speak Chat Completions and run through `OpenAIChatCompletionsModel`. When a run moves between providers, reasoning items are dropped so the next provider gets a clean transcript. On each model call the ring tries providers in the school's policy order and moves on when one returns 429, 402, 401/403, 5xx, a connection error, or has used its school-set daily token budget. A provider that fails stays skipped for the rest of that run. Every hop is returned to the UI, which shows it as a route trail on each answer and updates the budget bars.
+`FailoverModel` (`swc_classroom/router.py`) implements the Agents SDK `Model` interface. OpenAI plans run through the SDK's `OpenAIResponsesModel`; Gemini, DeepSeek and school machines speak Chat Completions and run through `OpenAIChatCompletionsModel`. When a run moves between providers, reasoning items are dropped so the next provider gets a clean transcript. On each model call the ring tries providers in the school's policy order and moves on when one returns 429, 402, 401/403, 5xx, a connection error, or has used its school-set daily token budget. A provider that fails stays skipped for the rest of that run. Every hop is returned to the UI, which shows it as a route trail on each answer and updates the budget bars.
 
 Because the switch happens per model call, not per conversation, a single task can start on one subscription and finish on another, including mid-handoff.
 
